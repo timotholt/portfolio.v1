@@ -170,6 +170,7 @@ function updateCamera() {
     progress += (targetProgress - progress) * 0.1;
     const point = curve.getPoint(progress);
     const lookAhead = curve.getPoint(Math.min(progress + 0.01, 1));
+    lookAhead.y += 0.1; 
     camera.position.copy(point).add(cameraOffset);
     camera.lookAt(lookAhead);
 }
