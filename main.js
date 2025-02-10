@@ -104,7 +104,8 @@ const trackMaterial = new THREE.MeshBasicMaterial({
 const track = new THREE.Mesh(trackGeometry, trackMaterial);
 scene.add(track);
 
-// Create rings
+// Create rings array to store references
+const rings = [];
 const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
 const ringMaterial = new THREE.MeshBasicMaterial({ 
     color: 0xffaa00,  // Keep the rings the same
@@ -116,12 +117,37 @@ const ringMaterial = new THREE.MeshBasicMaterial({
 });
 
 for(let i = 0; i <= 8; i++) {
-    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial.clone()); // Clone material for individual control
     const point = curve.getPoint(i / 8);
     const tangent = curve.getTangent(i / 8);
     ring.position.copy(point);
     ring.lookAt(point.clone().add(tangent));
+    rings.push(ring);
     scene.add(ring);
+}
+
+// Update rings opacity based on camera distance
+function updateRingsOpacity() {
+    const cameraPosition = camera.position;
+    rings.forEach((ring) => {
+        const distance = ring.position.distanceTo(cameraPosition);
+        const maxDistance = 5; // Distance at which rings start to fade
+        const minOpacity = 0.1; // Minimum opacity when far away
+        
+        // Calculate opacity based on distance
+        if (distance < 0.5) {
+            // When very close or passing through
+            ring.material.opacity = 0.7;
+        } else if (distance < maxDistance) {
+            // Linear fade between 0.5 and maxDistance
+            const fadeRange = maxDistance - 0.5;
+            const distanceInRange = distance - 0.5;
+            ring.material.opacity = 0.7 - ((0.7 - minOpacity) * (distanceInRange / fadeRange));
+        } else {
+            // Beyond maxDistance
+            ring.material.opacity = minOpacity;
+        }
+    });
 }
 
 // Create star field
@@ -227,6 +253,7 @@ function animate() {
     requestAnimationFrame(animate);
     updateParticles();
     updateCamera();
+    updateRingsOpacity();
     composer.render();  
 }
 
