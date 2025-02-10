@@ -6,7 +6,10 @@ scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 // Create the renderer
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ 
+    antialias: true,
+    powerPreference: "high-performance"
+});
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('portfolio-container').appendChild(renderer.domElement);
 
@@ -17,18 +20,24 @@ composer.addPass(renderPass);
 
 const bloomPass = new THREE.UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    2.5,    // Increased bloom intensity from 1.5
-    0.6,    // Increased bloom radius from 0.4
-    0.4     // Decreased threshold from 0.85 to allow more elements to glow
+    2.0,    // Stronger bloom intensity
+    0.5,    // Moderate radius
+    0.1     // Lower threshold for more glow
 );
 composer.addPass(bloomPass);
 
 // Add lights
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0x111111, 0.2); // Dimmer ambient
 scene.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-directionalLight.position.set(0, 1, 0);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+directionalLight.position.set(1, 1, 1);
 scene.add(directionalLight);
+
+// Add subtle blue point light for atmosphere
+const pointLight = new THREE.PointLight(0x4444ff, 1.0, 100);
+pointLight.position.set(0, 5, 0);
+scene.add(pointLight);
 
 // Create a spline path
 const curve = new THREE.CatmullRomCurve3([
@@ -83,15 +92,13 @@ trackGeometry.setIndex(indices);
 trackGeometry.computeVertexNormals();
 
 // Create track material
-const trackMaterial = new THREE.MeshPhongMaterial({ 
-    color: 0xff0000,
-    emissive: 0xff0000,
-    emissiveIntensity: 2.0,
+const trackMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0x661111,  // Much darker red
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.4,     // More transparent
     side: THREE.DoubleSide,
-    depthWrite: false,  // Don't write to depth buffer
-    blending: THREE.AdditiveBlending  // Use additive blending
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
 });
 
 const track = new THREE.Mesh(trackGeometry, trackMaterial);
@@ -99,15 +106,13 @@ scene.add(track);
 
 // Create rings
 const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
-const ringMaterial = new THREE.MeshPhongMaterial({ 
-    color: 0xffaa00,
-    emissive: 0xffaa00,
-    emissiveIntensity: 2.0,
+const ringMaterial = new THREE.MeshBasicMaterial({ 
+    color: 0xffaa00,  // Keep the rings the same
     transparent: true,
     opacity: 0.7,
     side: THREE.DoubleSide,
-    depthWrite: false,  // Don't write to depth buffer
-    blending: THREE.AdditiveBlending  // Use additive blending
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
 });
 
 for(let i = 0; i <= 8; i++) {
@@ -145,20 +150,23 @@ const stars = new THREE.Points(starsGeometry, starsMaterial);
 scene.add(stars);
 
 // Create particles
-const particlesCount = 1000;
+const particlesCount = 2000; 
 const particlesGeometry = new THREE.BufferGeometry();
 const particlesMaterial = new THREE.PointsMaterial({
-    color: 0xaaaaff,
-    size: 0.5,
+    color: 0x88aaff, 
+    size: 0.2,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 0.8
+    opacity: 0.6,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
 });
 
 const particlePositions = new Float32Array(particlesCount * 3);
 const particleVelocities = new Float32Array(particlesCount * 3);
-const tubeRadius = 20;
-const tubeLength = 100;
+const particleSizes = new Float32Array(particlesCount);
+const tubeRadius = 30; 
+const tubeLength = 150; 
 
 for (let i = 0; i < particlesCount; i++) {
     const angle = Math.random() * Math.PI * 2;
@@ -169,12 +177,15 @@ for (let i = 0; i < particlesCount; i++) {
     particlePositions[i * 3 + 1] = Math.sin(angle) * r;
     particlePositions[i * 3 + 2] = z;
     
-    particleVelocities[i * 3] = (Math.random() - 0.5) * 0.005;
-    particleVelocities[i * 3 + 1] = (Math.random() - 0.5) * 0.005;
-    particleVelocities[i * 3 + 2] = -Math.random() * 0.02;
+    particleVelocities[i * 3] = (Math.random() - 0.5) * 0.002;
+    particleVelocities[i * 3 + 1] = (Math.random() - 0.5) * 0.002;
+    particleVelocities[i * 3 + 2] = -Math.random() * 0.01;
+    
+    particleSizes[i] = Math.random() * 0.3 + 0.1; 
 }
 
 particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+particlesGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
 const particles = new THREE.Points(particlesGeometry, particlesMaterial);
 scene.add(particles);
 
