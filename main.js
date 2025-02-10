@@ -10,6 +10,19 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('portfolio-container').appendChild(renderer.domElement);
 
+// Set up post-processing
+const composer = new THREE.EffectComposer(renderer);
+const renderPass = new THREE.RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new THREE.UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    2.5,    // Increased bloom intensity from 1.5
+    0.6,    // Increased bloom radius from 0.4
+    0.4     // Decreased threshold from 0.85 to allow more elements to glow
+);
+composer.addPass(bloomPass);
+
 // Add lights
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
@@ -73,7 +86,7 @@ trackGeometry.computeVertexNormals();
 const trackMaterial = new THREE.MeshPhongMaterial({ 
     color: 0xff0000,
     emissive: 0xff0000,
-    emissiveIntensity: 0.5,
+    emissiveIntensity: 2.0,
     transparent: true,
     opacity: 0.7,
     side: THREE.DoubleSide
@@ -87,7 +100,7 @@ const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
 const ringMaterial = new THREE.MeshPhongMaterial({ 
     color: 0xffaa00,
     emissive: 0xffaa00,
-    emissiveIntensity: 0.5,
+    emissiveIntensity: 2.0,
     transparent: true,
     opacity: 0.7,
     side: THREE.DoubleSide
@@ -199,7 +212,7 @@ function animate() {
     requestAnimationFrame(animate);
     updateParticles();
     updateCamera();
-    renderer.render(scene, camera);
+    composer.render();  
 }
 
 // Set initial camera position and start animation
@@ -217,4 +230,5 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);  
 });
