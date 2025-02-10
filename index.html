@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        #portfolio-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .overlay {
+            position: absolute;
+            color: white;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+</head>
+<body>
+    <div id="portfolio-container">
+        <div class="overlay">
+            <h1>Tim Otholt</h1>
+        </div>
+    </div>
+    <script src="main.js" defer></script>
+</body>
+</html>
