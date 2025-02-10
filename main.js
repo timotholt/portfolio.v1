@@ -89,7 +89,9 @@ const trackMaterial = new THREE.MeshPhongMaterial({
     emissiveIntensity: 2.0,
     transparent: true,
     opacity: 0.7,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    depthWrite: false,  // Don't write to depth buffer
+    blending: THREE.AdditiveBlending  // Use additive blending
 });
 
 const track = new THREE.Mesh(trackGeometry, trackMaterial);
@@ -103,7 +105,9 @@ const ringMaterial = new THREE.MeshPhongMaterial({
     emissiveIntensity: 2.0,
     transparent: true,
     opacity: 0.7,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    depthWrite: false,  // Don't write to depth buffer
+    blending: THREE.AdditiveBlending  // Use additive blending
 });
 
 for(let i = 0; i <= 8; i++) {
