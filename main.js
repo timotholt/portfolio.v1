@@ -210,10 +210,15 @@ for (let i = 0; i < starsCount; i++) {
     const z = radius * Math.cos(phi);
     starsVertices.push(x, y, z);
     
-    // Calculate brightness based on y position (higher stars are dimmer)
-    const yNormalized = Math.abs(y / radius);  // 0 to 1
-    const baseBrightness = 0.3;  // Minimum brightness
-    const brightness = baseBrightness + (1 - yNormalized) * 0.7;  // Brighter at horizon
+    // Calculate distance from center for brightness
+    const distFromCenter = Math.sqrt(x*x + y*y + z*z) / radius;
+    const centerBrightness = 1 - (distFromCenter * 0.4);  // Changed to 0.4 to make edge stars 60% brightness
+    
+    // Add random individual star brightness
+    const randomBrightness = 0.2 + Math.random() * 0.8;  // Each star gets random brightness between 0.2 and 1.0
+    
+    // Combine both effects
+    const brightness = centerBrightness * randomBrightness;
     
     starsColors[i * 3] = brightness;
     starsColors[i * 3 + 1] = brightness;
@@ -228,7 +233,7 @@ const starsMaterial = new THREE.PointsMaterial({
     size: 1,
     sizeAttenuation: false,
     vertexColors: true,
-    opacity: 0.8,
+    opacity: 0.9,
     transparent: true
 });
 
