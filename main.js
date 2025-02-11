@@ -39,7 +39,7 @@ labelRenderer.domElement.style.top = '0';
 labelRenderer.domElement.style.pointerEvents = 'none';
 document.getElementById('portfolio-container').appendChild(labelRenderer.domElement);
 
-// Create CSS3D renderer for web pages
+// Create CSS3D renderer for HUD
 const css3dRenderer = new THREE.CSS3DRenderer();
 css3dRenderer.setSize(window.innerWidth, window.innerHeight);
 css3dRenderer.domElement.style.position = 'absolute';
@@ -74,37 +74,39 @@ const pointLight = new THREE.PointLight(0x4444ff, 1.0, 100);
 pointLight.position.set(0, 5, 0);
 scene.add(pointLight);
 
-// Create a test webpage in the scene
-function createWebPage() {
+// Function to create an iframe plane
+function createWebPagePlane(url, width = 500, height = 300, position = { x: 0, y: 200, z: -500 }, rotation = { x: -0.2, y: 0, z: 0 }) {
+    // Create iframe element
     const iframe = document.createElement('iframe');
-    iframe.style.width = '400px';
-    iframe.style.height = '300px';
+    iframe.style.width = `${width}px`;
+    iframe.style.height = `${height}px`;
     iframe.style.border = '0px';
-    iframe.src = 'test-page.html';
+    iframe.src = url;
 
     // Create CSS3D object
-    const webpageObject = new THREE.CSS3DObject(iframe);
-    webpageObject.position.set(0, 0, -1000); // Position it in front of the camera
-    webpageObject.rotation.x = 0;
-    scene.add(webpageObject);
+    const css3dObject = new THREE.CSS3DObject(iframe);
+    css3dObject.position.set(position.x, position.y, position.z);
+    css3dObject.rotation.set(rotation.x, rotation.y, rotation.z);
+    scene.add(css3dObject);
 
-    // Create a placeholder mesh in the WebGL scene (optional, for debugging)
-    const planeGeometry = new THREE.PlaneGeometry(400, 300);
-    const planeMaterial = new THREE.MeshBasicMaterial({
-        opacity: 0.1,
+    // Create a placeholder mesh in the WebGL scene
+    const geometry = new THREE.PlaneGeometry(width, height);
+    const material = new THREE.MeshBasicMaterial({ 
+        opacity: 0,
         transparent: true,
-        side: THREE.DoubleSide
+        side: THREE.DoubleSide,
+        depthWrite: false
     });
-    const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
-    planeMesh.position.copy(webpageObject.position);
-    planeMesh.rotation.copy(webpageObject.rotation);
-    scene.add(planeMesh);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.copy(css3dObject.position);
+    mesh.rotation.copy(css3dObject.rotation);
+    scene.add(mesh);
 
-    return { webpageObject, planeMesh };
+    return { css3dObject, mesh };
 }
 
-// Create the webpage
-const webpage = createWebPage();
+// Create test webpage
+const testPage = createWebPagePlane('test-page.html');
 
 // Create a spline path
 const curve = new THREE.CatmullRomCurve3([
@@ -413,34 +415,30 @@ function updateRingsOpacity() {
     });
 }
 
-// Function to create an iframe plane
-function createWebPagePlane(url, width = 500, height = 300, position = { x: 0, y: 0, z: -500 }, rotation = { x: 0, y: 0, z: 0 }) {
-    // Create iframe element
-    const iframe = document.createElement('iframe');
-    iframe.style.width = `${width}px`;
-    iframe.style.height = `${height}px`;
-    iframe.style.border = '0px';
-    iframe.src = url;
-
-    // Create CSS3D object
-    const css3dObject = new THREE.CSS3DObject(iframe);
-    css3dObject.position.set(position.x, position.y, position.z);
-    css3dObject.rotation.set(rotation.x, rotation.y, rotation.z);
-    scene.add(css3dObject);
-
-    // Create a placeholder mesh in the WebGL scene
-    const geometry = new THREE.PlaneGeometry(width, height);
-    const material = new THREE.MeshBasicMaterial({ 
-        opacity: 0,
-        transparent: true,
-        side: THREE.DoubleSide
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.copy(css3dObject.position);
-    mesh.rotation.copy(css3dObject.rotation);
-    scene.add(mesh);
-
-    return { css3dObject, mesh };
+function handleSpacebarPress() {
+    const currentPos = progress % 1.0;
+    const epsilon = 0.01; // Increased from 0.001
+    const nextMilestoneIndex = milestones.findIndex(m => Math.abs(m.position - currentPos) < epsilon);
+    console.log('Current milestone index:', nextMilestoneIndex);
+    
+    // Get next milestone index
+    const nextIndex = (nextMilestoneIndex === -1) 
+        ? milestones.findIndex(m => m.position > currentPos)
+        : (nextMilestoneIndex + 1) % milestones.length;
+    console.log('Next milestone index:', nextIndex);
+    
+    // Get next milestone value
+    const nextMilestone = milestones[nextIndex].position;
+    console.log('Next milestone:', nextMilestone);
+    
+    // If we're wrapping around to the beginning
+    if (nextIndex === 0) {
+        targetProgress = Math.ceil(progress) + nextMilestone;
+        console.log('Wrapping to next cycle:', targetProgress);
+    } else {
+        targetProgress = Math.floor(progress) + nextMilestone;
+        console.log('Moving to next milestone:', targetProgress);
+    }
 }
 
 // Create star field
@@ -524,7 +522,8 @@ for (let i = 0; i < particlesCount; i++) {
     particleVelocities[i * 3 + 2] = -Math.random() * 0.01;
     
     // Random brightness like the stars
-    const brightness = 0.2 + Math.random() * 0.8;  // Back to original range
+    const brightness = 0.2 + Math.random() * 0.8;  // Each star gets random brightness between 0.2 and 1.0
+    
     particlesColors[i * 3] = brightness;
     particlesColors[i * 3 + 1] = brightness;
     particlesColors[i * 3 + 2] = brightness;
@@ -801,8 +800,8 @@ function animate() {
     trackMaterial.uniforms.time.value += 0.03;
     
     composer.render();
-    labelRenderer.render(scene, camera);
     css3dRenderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
 }
 
 // Set initial camera position and start animation
