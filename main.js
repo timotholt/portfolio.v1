@@ -259,8 +259,9 @@ const cameraOffset = new THREE.Vector3(0, 0.5, 0);
 
 function updateCamera() {
     progress += (targetProgress - progress) * 0.1;
-    const point = curve.getPoint(progress);
-    const lookAhead = curve.getPoint(Math.min(progress + 0.01, 1));
+    const wrappedProgress = progress % 1.0;  // This will wrap from 0 to 1
+    const point = curve.getPointAt(wrappedProgress);  // Using getPointAt for better interpolation
+    const lookAhead = curve.getPointAt((wrappedProgress + 0.01) % 1.0);  // Also wrap the lookahead
     lookAhead.y += 0.1; 
     camera.position.copy(point).add(cameraOffset);
     camera.lookAt(lookAhead);
@@ -305,7 +306,7 @@ animate();
 // Handle mouse wheel
 document.addEventListener('wheel', (event) => {
     const delta = event.deltaY * 0.0002;
-    targetProgress = Math.max(0, Math.min(1, targetProgress + delta));
+    targetProgress += delta;  
 });
 
 // Handle window resize
