@@ -26,8 +26,8 @@
             letter-spacing: 1px;
         }
         #name-card {
-            top: 20px;
-            left: 20px;
+            top: 1.5rem;
+            left: 1.5rem;
             background: rgba(0, 20, 15, 0.85);
             border: 1px solid rgba(0, 255, 200, 0.3);
             padding: 0;
@@ -35,7 +35,7 @@
             box-shadow: 0 0 20px rgba(0, 255, 200, 0.1),
                        inset 0 0 15px rgba(0, 255, 200, 0.05);
             backdrop-filter: blur(5px);
-            min-width: 300px;
+            min-width: 14rem;
             animation: borderPulse 4s infinite;
         }
         .card-header {
@@ -120,10 +120,12 @@
             cursor: pointer;
             user-select: none;
             -webkit-user-select: none;
-            transition: background-color 0.1s;
+            transition: all 0.05s ease-out;
         }
         .key:active, .key.active {
             background: rgba(0, 255, 200, 0.3);
+            transform: scale(0.95);
+            transition: all 0.05s ease-out;
         }
         .key-spacebar {
             width: 80px;
@@ -261,12 +263,12 @@
     <div id="portfolio-container">
         <div id="name-card" class="hud-element">
             <div class="card-header">
-                <h1 id="name">Tim Otholt</h1>
+                <h1 id="name">Tim Otholt - SDE</h1>
             </div>
             <div class="card-body">
                 <div id="contact">
-                    <p class="email"><i class="fas fa-envelope"></i>timotholt@gmail.com</p>
                     <p class="phone"><i class="fas fa-phone"></i>408-406-1832</p>
+                    <p class="email"><i class="fas fa-envelope"></i>timotholt@gmail.com</p>
                 </div>
             </div>
         </div>

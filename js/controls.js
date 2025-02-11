@@ -41,7 +41,9 @@ export function createControls(THREE, camera, curve, milestones) {
                 break;
             case 'Space':
                 handleSpacebarPress();
-                document.querySelector('.key-spacebar')?.classList.add('active');
+                const spacebarElement = document.querySelector('.key-spacebar');
+                console.log('Spacebar element:', spacebarElement);
+                spacebarElement?.classList.add('active');
                 break;
         }
     }
@@ -144,28 +146,73 @@ export function createControls(THREE, camera, curve, milestones) {
     function setupButtonHandlers() {
         // WASD handlers
         const buttons = {
-            'W': { down: () => handleKeyDown({ code: 'KeyW' }), up: () => handleKeyUp({ code: 'KeyW' }) },
-            'A': { down: () => handleKeyDown({ code: 'KeyA' }), up: () => handleKeyUp({ code: 'KeyA' }) },
-            'S': { down: () => handleKeyDown({ code: 'KeyS' }), up: () => handleKeyUp({ code: 'KeyS' }) },
-            'D': { down: () => handleKeyDown({ code: 'KeyD' }), up: () => handleKeyUp({ code: 'KeyD' }) }
+            'W': { 
+                down: () => handleKeyDown({ code: 'KeyW' }), 
+                up: () => handleKeyUp({ code: 'KeyW' }) 
+            },
+            'A': { 
+                down: () => handleKeyDown({ code: 'KeyA' }), 
+                up: () => handleKeyUp({ code: 'KeyA' }) 
+            },
+            'S': { 
+                down: () => handleKeyDown({ code: 'KeyS' }), 
+                up: () => handleKeyUp({ code: 'KeyS' }) 
+            },
+            'D': { 
+                down: () => handleKeyDown({ code: 'KeyD' }), 
+                up: () => handleKeyUp({ code: 'KeyD' }) 
+            }
         };
 
         // Set up WASD buttons
         document.querySelectorAll('.key:not(.key-spacebar)').forEach(button => {
             const key = button.textContent;
             if (buttons[key]) {
+                // Mouse events
                 button.addEventListener('mousedown', buttons[key].down);
                 button.addEventListener('mouseup', buttons[key].up);
                 button.addEventListener('mouseleave', buttons[key].up);
+                
+                // Touch events
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();  // Prevent double-firing on mobile
+                    buttons[key].down();
+                });
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    buttons[key].up();
+                });
+                button.addEventListener('touchcancel', (e) => {
+                    e.preventDefault();
+                    buttons[key].up();
+                });
             }
         });
 
         // Set up spacebar button
         const spaceButton = document.querySelector('.key-spacebar');
         if (spaceButton) {
-            spaceButton.addEventListener('mousedown', () => handleKeyDown({ code: 'Space' }));
-            spaceButton.addEventListener('mouseup', () => handleKeyUp({ code: 'Space' }));
-            spaceButton.addEventListener('mouseleave', () => handleKeyUp({ code: 'Space' }));
+            const spaceDown = () => handleKeyDown({ code: 'Space' });
+            const spaceUp = () => handleKeyUp({ code: 'Space' });
+            
+            // Mouse events
+            spaceButton.addEventListener('mousedown', spaceDown);
+            spaceButton.addEventListener('mouseup', spaceUp);
+            spaceButton.addEventListener('mouseleave', spaceUp);
+            
+            // Touch events
+            spaceButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();  // Prevent double-firing on mobile
+                spaceDown();
+            });
+            spaceButton.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                spaceUp();
+            });
+            spaceButton.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                spaceUp();
+            });
         }
     }
 
