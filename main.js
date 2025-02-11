@@ -104,7 +104,7 @@ trackGeometry.computeVertexNormals();
 const trackMaterial = new THREE.ShaderMaterial({
     uniforms: {
         time: { value: 0 },
-        opacity: { value: 0.7 }
+        opacity: { value: 0.5 }  
     },
     vertexShader: `
         varying vec2 vUv;
@@ -120,12 +120,12 @@ const trackMaterial = new THREE.ShaderMaterial({
         
         void main() {
             // Create moving chevron pattern
-            float v = vUv.x * 20.0 - time;
+            float v = vUv.x * 20.0 + time;  
             float chevron = abs(fract(v) * 2.0 - 1.0);
             chevron = step(chevron, 0.5);
             
-            // Output color
-            gl_FragColor = vec4(1.0, 0.2, 0.2, chevron * opacity);
+            // Output color 
+            gl_FragColor = vec4(0.6, 0.1, 0.1, chevron * opacity);
         }
     `,
     transparent: true,
