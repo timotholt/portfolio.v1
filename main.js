@@ -145,34 +145,64 @@ const trackMaterial = new THREE.ShaderMaterial({
 const track = new THREE.Mesh(trackGeometry, trackMaterial);
 scene.add(track);
 
+// Create text sprite
+function createTextSprite(text) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 64;
+    
+    ctx.font = '32px Future Earth';
+    ctx.fillStyle = '#00ffc8';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 128, 40);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+        map: texture,
+        transparent: true,
+        opacity: 0.8
+    });
+    return new THREE.Sprite(spriteMaterial);
+}
+
 // Create rings array to store references
 const rings = [];
+const ringLabels = [];
 const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
 const ringMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xffd700,  // Golden color
+    color: 0xffd700,
     transparent: true,
     opacity: 0.7,
-    blending: THREE.AdditiveBlending  // Add glow effect
+    blending: THREE.AdditiveBlending
 });
 
 // Create rings at milestone positions
-const milestones = [0.20, 0.45, 0.70, 0.95];  
-milestones.forEach(milestone => {
+const milestones = [0.20, 0.45, 0.70, 0.95];
+const milestoneNames = ["EDUCATION", "EXPERIENCE", "PROJECTS", "CONTACT"];
+milestones.forEach((milestone, index) => {
     const point = curve.getPointAt(milestone);
     const tangent = curve.getTangentAt(milestone);
     
-    const ring = new THREE.Mesh(ringGeometry, ringMaterial.clone()); 
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial.clone());
     ring.position.copy(point);
     ring.lookAt(point.clone().add(tangent));
     rings.push(ring);
     scene.add(ring);
+    
+    // Add text label
+    const label = createTextSprite(milestoneNames[index]);
+    label.position.copy(point).add(new THREE.Vector3(0.8, 0.5, 0)); // Offset diagonally
+    label.scale.set(1, 0.25, 1); // Make sprite rectangular
+    ringLabels.push(label);
+    scene.add(label);
 });
 
 // Update rings opacity based on track distance
 function updateRingsOpacity() {
     const wrappedProgress = ((progress % 1.0) + 1.0) % 1.0;  // Same wrapping as camera
     rings.forEach((ring, index) => {
-        const milestone = (index + 1) * 0.25;
+        const milestone = milestones[index];
         
         // Calculate shortest distance along track (handling wraparound)
         let distance = Math.abs(milestone - wrappedProgress);
@@ -185,8 +215,10 @@ function updateRingsOpacity() {
         const startFade = 0.08;   // Start fading sooner
         const fadeRange = 0.15;   // Faster fade
         
+        // Update both ring and label opacity
         if (distance <= startFade) {
             ring.material.opacity = maxOpacity;
+            ringLabels[index].material.opacity = maxOpacity;
             // Make color more intense when close
             const whiteBlend = 1 - (distance / startFade);
             const color = new THREE.Color(0xffd700);  // Base gold color
@@ -197,10 +229,13 @@ function updateRingsOpacity() {
             // More aggressive fade
             const fadeProgress = distanceInRange / fadeRange;
             const fadeValue = Math.pow(1 - fadeProgress, 3);  // Cubic fade for faster dropoff
-            ring.material.opacity = minOpacity + (maxOpacity - minOpacity) * fadeValue;
+            const opacity = minOpacity + (maxOpacity - minOpacity) * fadeValue;
+            ring.material.opacity = opacity;
+            ringLabels[index].material.opacity = opacity;
             ring.material.color.setHex(0xffd700);  // Reset to base gold color
         } else {
             ring.material.opacity = minOpacity;
+            ringLabels[index].material.opacity = minOpacity;
             ring.material.color.setHex(0xffd700);  // Reset to base gold color
         }
     });
@@ -369,6 +404,8 @@ function updateCamera() {
             }
         });
     }
+    
+    updateRingsOpacity();
 }
 
 // Update particles
