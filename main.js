@@ -403,9 +403,9 @@ document.addEventListener('keydown', (event) => {
             break;
         case ' ':  // Spacebar
             const currentPos = progress % 1.0;
-            const nextPoint = pointsOfInterest.find(p => p.position > currentPos) 
-                || pointsOfInterest[0];  // Wrap around to first point
-            targetProgress = nextPoint.position;
+            const milestones = [0.20, 0.45, 0.70, 0.95];
+            const nextMilestone = milestones.find(m => m > currentPos) || milestones[0];
+            targetProgress = nextMilestone;
             break;
     }
 });
