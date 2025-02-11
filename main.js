@@ -152,8 +152,8 @@ function createTextSprite(text) {
     canvas.width = 256;
     canvas.height = 64;
     
-    ctx.font = '32px "Orbitron"';  
-    ctx.fillStyle = '#4dfff3';  
+    ctx.font = '32px "Orbitron"';
+    ctx.fillStyle = '#4dfff3';
     ctx.textAlign = 'center';
     ctx.fillText(text, 128, 40);
     
@@ -161,14 +161,19 @@ function createTextSprite(text) {
     const spriteMaterial = new THREE.SpriteMaterial({ 
         map: texture,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.8,
+        depthTest: false,  // Always render on top
+        sizeAttenuation: true  // Scale with distance
     });
-    return new THREE.Sprite(spriteMaterial);
+    const sprite = new THREE.Sprite(spriteMaterial);
+    sprite.renderOrder = 1;  // Render after rings
+    return sprite;
 }
 
 // Create rings array to store references
 const rings = [];
 const ringLabels = [];
+const ringConnectors = [];  // Store connecting lines
 const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
 const ringMaterial = new THREE.MeshBasicMaterial({ 
     color: 0xffd700,
@@ -177,9 +182,22 @@ const ringMaterial = new THREE.MeshBasicMaterial({
     blending: THREE.AdditiveBlending
 });
 
+// Line material for connectors
+const connectorMaterial = new THREE.LineBasicMaterial({
+    color: 0x4dfff3,
+    transparent: true,
+    opacity: 0.6,
+    depthTest: false
+});
+
 // Create rings at milestone positions
 const milestones = [0.20, 0.45, 0.70, 0.95];
 const milestoneNames = ["EDUCATION", "EXPERIENCE", "PROJECTS", "CONTACT"];
+const minOpacity = 0.05;   // Dimmer when far
+const maxOpacity = 0.7;    // Less bright when close
+const startFade = 0.08;    // Start fading sooner
+const fadeRange = 0.15;    // Faster fade
+
 milestones.forEach((milestone, index) => {
     const point = curve.getPointAt(milestone);
     const tangent = curve.getTangentAt(milestone);
@@ -192,10 +210,20 @@ milestones.forEach((milestone, index) => {
     
     // Add text label
     const label = createTextSprite(milestoneNames[index]);
-    label.position.copy(point).add(new THREE.Vector3(0.8, 0.5, 0)); // Offset diagonally
-    label.scale.set(1, 0.25, 1); // Make sprite rectangular
+    label.userData.basePosition = point.clone();
+    label.scale.set(0.8, 0.2, 1);  // Fixed size for HUD feel
+    label.material.opacity = 0.9;   // Fixed opacity for HUD feel
     ringLabels.push(label);
     scene.add(label);
+    
+    // Create connector line
+    const connectorGeometry = new THREE.BufferGeometry();
+    const linePositions = new Float32Array(6);  // 2 points × 3 coordinates
+    connectorGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+    const connector = new THREE.Line(connectorGeometry, connectorMaterial);
+    connector.renderOrder = 1;  // Render after rings
+    ringConnectors.push(connector);
+    scene.add(connector);
 });
 
 // Update rings opacity based on track distance
@@ -210,44 +238,50 @@ function updateRingsOpacity() {
             distance = 1 - distance;
         }
         
-        const minOpacity = 0.05;  // Dimmer when far
-        const maxOpacity = 1.0;   // Brighter when close
-        const startFade = 0.08;   // Start fading sooner
-        const fadeRange = 0.15;   // Faster fade
-        
-        // Update both ring and label opacity
+        // Update ring opacity and color
         if (distance <= startFade) {
             ring.material.opacity = maxOpacity;
-            ringLabels[index].material.opacity = maxOpacity;
-            // Make color more intense when close
             const whiteBlend = 1 - (distance / startFade);
-            const color = new THREE.Color(0xffd700);  // Base gold color
-            color.lerp(new THREE.Color(0xffffff), whiteBlend * 0.5);  // Blend towards white
+            const color = new THREE.Color(0xffd700);
+            color.lerp(new THREE.Color(0xffffff), whiteBlend * 0.5);
             ring.material.color = color;
         } else if (distance <= startFade + fadeRange) {
-            const distanceInRange = distance - startFade;
-            // More aggressive fade
-            const fadeProgress = distanceInRange / fadeRange;
-            const fadeValue = Math.pow(1 - fadeProgress, 3);  // Cubic fade for faster dropoff
-            const opacity = minOpacity + (maxOpacity - minOpacity) * fadeValue;
-            ring.material.opacity = opacity;
-            ringLabels[index].material.opacity = opacity;
-            ring.material.color.setHex(0xffd700);  // Reset to base gold color
+            const fadeValue = Math.pow(1 - ((distance - startFade) / fadeRange), 3);
+            ring.material.opacity = minOpacity + (maxOpacity - minOpacity) * fadeValue;
+            ring.material.color.setHex(0xffd700);
         } else {
             ring.material.opacity = minOpacity;
-            ringLabels[index].material.opacity = minOpacity;
-            ring.material.color.setHex(0xffd700);  // Reset to base gold color
+            ring.material.color.setHex(0xffd700);
         }
+        
+        // Update label and connector positions
+        const label = ringLabels[index];
+        const connector = ringConnectors[index];
+        const basePos = label.userData.basePosition;
+        
+        // Calculate offset based on camera position
+        const cameraRight = new THREE.Vector3();
+        const cameraUp = new THREE.Vector3();
+        camera.matrixWorld.extractBasis(cameraRight, cameraUp, new THREE.Vector3());
+        
+        // Position label with fixed offset (HUD-style)
+        const labelPos = basePos.clone()
+            .add(cameraRight.multiplyScalar(1.0))  // More offset to the right
+            .add(cameraUp.multiplyScalar(0.5));    // More offset up
+        
+        label.position.copy(labelPos);
+        
+        // Update connector line positions
+        const positions = connector.geometry.attributes.position.array;
+        positions[0] = basePos.x;  // Start at ring
+        positions[1] = basePos.y;
+        positions[2] = basePos.z;
+        positions[3] = labelPos.x;  // End at label
+        positions[4] = labelPos.y;
+        positions[5] = labelPos.z;
+        connector.geometry.attributes.position.needsUpdate = true;
     });
 }
-
-// Define points of interest
-const pointsOfInterest = [
-    { position: 0.0, name: "Start" },
-    { position: 0.25, name: "Project 1" },
-    { position: 0.5, name: "Project 2" },
-    { position: 0.75, name: "Project 3" }
-];
 
 // Create star field
 const starsGeometry = new THREE.BufferGeometry();
