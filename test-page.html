@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            background: rgba(0, 40, 30, 0.8);
+            color: rgba(0, 255, 200, 1);
+            font-family: 'Consolas', monospace;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            text-shadow: 0 0 10px rgba(0, 255, 200, 0.5);
+        }
+        p {
+            margin: 10px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Web Page</h1>
+    <p>This is a test page that will be displayed in your Three.js scene.</p>
+    <p>The styling matches your portfolio's cyberpunk theme!</p>
+    <p>Current time: <span id="time"></span></p>
+    <script>
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleTimeString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+    </script>
+</body>
+</html>

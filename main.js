@@ -1,3 +1,15 @@
+// Wait for Three.js to be loaded
+if (typeof THREE === 'undefined') {
+    console.error('Three.js not loaded! Please check your script tags.');
+    throw new Error('Three.js not loaded');
+}
+
+// Wait for modules to be loaded
+if (typeof THREE.CSS2DRenderer === 'undefined' || typeof THREE.CSS3DRenderer === 'undefined') {
+    console.error('Required modules not loaded! Please check your script tags.');
+    throw new Error('Required modules not loaded');
+}
+
 // Create the scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
@@ -27,6 +39,14 @@ labelRenderer.domElement.style.top = '0';
 labelRenderer.domElement.style.pointerEvents = 'none';
 document.getElementById('portfolio-container').appendChild(labelRenderer.domElement);
 
+// Create CSS3D renderer for web pages
+const css3dRenderer = new THREE.CSS3DRenderer();
+css3dRenderer.setSize(window.innerWidth, window.innerHeight);
+css3dRenderer.domElement.style.position = 'absolute';
+css3dRenderer.domElement.style.top = '0';
+css3dRenderer.domElement.style.pointerEvents = 'none';
+document.getElementById('portfolio-container').appendChild(css3dRenderer.domElement);
+
 // Set up post-processing
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
@@ -53,6 +73,38 @@ scene.add(directionalLight);
 const pointLight = new THREE.PointLight(0x4444ff, 1.0, 100);
 pointLight.position.set(0, 5, 0);
 scene.add(pointLight);
+
+// Create a test webpage in the scene
+function createWebPage() {
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '400px';
+    iframe.style.height = '300px';
+    iframe.style.border = '0px';
+    iframe.src = 'test-page.html';
+
+    // Create CSS3D object
+    const webpageObject = new THREE.CSS3DObject(iframe);
+    webpageObject.position.set(0, 0, -1000); // Position it in front of the camera
+    webpageObject.rotation.x = 0;
+    scene.add(webpageObject);
+
+    // Create a placeholder mesh in the WebGL scene (optional, for debugging)
+    const planeGeometry = new THREE.PlaneGeometry(400, 300);
+    const planeMaterial = new THREE.MeshBasicMaterial({
+        opacity: 0.1,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+    const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+    planeMesh.position.copy(webpageObject.position);
+    planeMesh.rotation.copy(webpageObject.rotation);
+    scene.add(planeMesh);
+
+    return { webpageObject, planeMesh };
+}
+
+// Create the webpage
+const webpage = createWebPage();
 
 // Create a spline path
 const curve = new THREE.CatmullRomCurve3([
@@ -361,30 +413,34 @@ function updateRingsOpacity() {
     });
 }
 
-function handleSpacebarPress() {
-    const currentPos = progress % 1.0;
-    const epsilon = 0.01; // Increased from 0.001
-    const nextMilestoneIndex = milestones.findIndex(m => Math.abs(m.position - currentPos) < epsilon);
-    console.log('Current milestone index:', nextMilestoneIndex);
-    
-    // Get next milestone index
-    const nextIndex = (nextMilestoneIndex === -1) 
-        ? milestones.findIndex(m => m.position > currentPos)
-        : (nextMilestoneIndex + 1) % milestones.length;
-    console.log('Next milestone index:', nextIndex);
-    
-    // Get next milestone value
-    const nextMilestone = milestones[nextIndex].position;
-    console.log('Next milestone:', nextMilestone);
-    
-    // If we're wrapping around to the beginning
-    if (nextIndex === 0) {
-        targetProgress = Math.ceil(progress) + nextMilestone;
-        console.log('Wrapping to next cycle:', targetProgress);
-    } else {
-        targetProgress = Math.floor(progress) + nextMilestone;
-        console.log('Moving to next milestone:', targetProgress);
-    }
+// Function to create an iframe plane
+function createWebPagePlane(url, width = 500, height = 300, position = { x: 0, y: 0, z: -500 }, rotation = { x: 0, y: 0, z: 0 }) {
+    // Create iframe element
+    const iframe = document.createElement('iframe');
+    iframe.style.width = `${width}px`;
+    iframe.style.height = `${height}px`;
+    iframe.style.border = '0px';
+    iframe.src = url;
+
+    // Create CSS3D object
+    const css3dObject = new THREE.CSS3DObject(iframe);
+    css3dObject.position.set(position.x, position.y, position.z);
+    css3dObject.rotation.set(rotation.x, rotation.y, rotation.z);
+    scene.add(css3dObject);
+
+    // Create a placeholder mesh in the WebGL scene
+    const geometry = new THREE.PlaneGeometry(width, height);
+    const material = new THREE.MeshBasicMaterial({ 
+        opacity: 0,
+        transparent: true,
+        side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.copy(css3dObject.position);
+    mesh.rotation.copy(css3dObject.rotation);
+    scene.add(mesh);
+
+    return { css3dObject, mesh };
 }
 
 // Create star field
@@ -746,6 +802,7 @@ function animate() {
     
     composer.render();
     labelRenderer.render(scene, camera);
+    css3dRenderer.render(scene, camera);
 }
 
 // Set initial camera position and start animation
@@ -768,5 +825,6 @@ window.addEventListener('resize', () => {
     
     renderer.setSize(width, height);
     labelRenderer.setSize(width, height);
+    css3dRenderer.setSize(width, height);
     composer.setSize(width, height);
 });
