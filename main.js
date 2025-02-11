@@ -7,7 +7,7 @@ const BLOOM_LAYER = 1;
 const NORMAL_LAYER = 0;
 
 // Set up the camera
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
 camera.layers.enable(BLOOM_LAYER);  // Enable bloom layer on camera
 camera.layers.enable(NORMAL_LAYER); // Enable normal layer on camera
 
