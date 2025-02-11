@@ -256,6 +256,20 @@ function updateRingsOpacity() {
         const ringCenter = ring.position.clone();
         const screenCenter = ringCenter.clone().project(camera);
         
+        // Check if ring is visible (in front of camera and within viewport)
+        const isVisible = screenCenter.z < 1 && 
+                         Math.abs(screenCenter.x) <= 1 && 
+                         Math.abs(screenCenter.y) <= 1;
+        
+        // Update label and connector visibility
+        const label = ringLabels[index];
+        const connector = ringConnectors[index];
+        label.element.style.display = isVisible ? '' : 'none';
+        connector.visible = isVisible;
+        
+        // Only update position if visible
+        if (!isVisible) return;
+        
         // Project ring edge point (0.5 units = ring radius)
         const edgePoint = ringCenter.clone().add(new THREE.Vector3(0.5, 0, 0));
         const screenEdge = edgePoint.clone().project(camera);
@@ -301,8 +315,7 @@ function updateRingsOpacity() {
         const offsetY = rightVector.y * rightOffset + upVector.y * upOffset;
         
         // Get label dimensions in screen space
-        const currentLabel = ringLabels[index];
-        const labelRect = currentLabel.element.getBoundingClientRect();
+        const labelRect = label.element.getBoundingClientRect();
         const labelWidth = (labelRect.width / window.innerWidth) * 2;
         const labelHeight = (labelRect.height / window.innerHeight) * 2;
         
@@ -327,11 +340,9 @@ function updateRingsOpacity() {
         ).unproject(camera);
         
         // Update label position
-        const label = ringLabels[index];
         label.position.copy(labelPos);
         
         // Update connector line
-        const connector = ringConnectors[index];
         const positions = connector.geometry.attributes.position.array;
         
         // Start at ring position
