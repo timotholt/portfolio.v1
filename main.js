@@ -318,12 +318,11 @@ function updateCamera() {
     camera.lookAt(lookAhead);
 
     // Update HUD metrics
-    const progressElement = document.getElementById('progress-value');
     const milestoneElement = document.getElementById('milestone-value');
     const milestoneNameElement = document.getElementById('milestone-name');
-    if (progressElement && milestoneElement && milestoneNameElement) {
-        progressElement.textContent = (wrappedProgress * 100).toFixed(2) + '%';
-        
+    const arrows = document.querySelectorAll('.arrow');
+    
+    if (milestoneElement && milestoneNameElement && arrows.length > 0) {
         const milestones = [
             { progress: 0.25, name: "[ EDUCATION ]" },
             { progress: 0.50, name: "[ EXPERIENCE ]" },
@@ -336,6 +335,19 @@ function updateCamera() {
         const distanceToMilestone = ((nextMilestone.progress - wrappedProgress) * 100).toFixed(2);
         milestoneElement.textContent = distanceToMilestone;
         milestoneNameElement.textContent = nextMilestone.name;
+
+        // Update arrows
+        const currentPosition = Math.floor(wrappedProgress * 20);
+        arrows.forEach((arrow, i) => {
+            arrow.className = 'arrow';  // Reset classes
+            if (i <= currentPosition) {
+                arrow.classList.add('active');
+            }
+            // If we're exactly at this arrow's position and it's a milestone
+            if (i === currentPosition && arrow.classList.contains('milestone')) {
+                arrow.classList.add('current-milestone');
+            }
+        });
     }
 }
 

@@ -78,9 +78,41 @@
         .metric-box {
             background: rgba(0, 40, 30, 0.4);
             border: 1px solid rgba(0, 255, 200, 0.3);
-            padding: 10px;
+            padding: 15px;
             margin: 5px 0;
             border-radius: 3px;
+            min-width: 300px;
+        }
+        .metric-box::before {
+            display: none;
+        }
+        .progress-arrows {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 5px;
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 1px;
+            height: 20px;
+            line-height: 20px;
+        }
+        .arrow {
+            color: rgba(0, 80, 60, 0.8);
+            transition: color 0.3s ease;
+            display: inline-block;
+            width: 12px;
+            text-align: center;
+        }
+        .arrow.active {
+            color: rgba(0, 255, 200, 0.8);
+        }
+        .arrow.milestone {
+            color: rgba(0, 255, 200, 1);
+            text-shadow: 0 0 5px rgba(0, 255, 200, 0.5);
+        }
+        .arrow.current-milestone {
+            color: rgba(255, 255, 255, 1);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
         }
         .metric-header {
             display: flex;
@@ -106,11 +138,6 @@
             font-size: 14px;
             margin-left: 5px;
         }
-        .metric-box::before {
-            content: ">";
-            margin-right: 5px;
-            color: rgba(0, 255, 200, 0.6);
-        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
@@ -131,10 +158,28 @@
         </div>
         <div id="metrics" class="hud-element">
             <div class="metric-box">
-                <div class="metric-label">Track Position</div>
-                <div class="metric-value" id="progress-value">0.00%</div>
-            </div>
-            <div class="metric-box">
+                <div class="progress-arrows" id="progress-arrows">
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow milestone">&gt;</span> <!-- 25% -->
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow milestone">&gt;</span> <!-- 50% -->
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow milestone">&gt;</span> <!-- 75% -->
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow">&gt;</span>
+                    <span class="arrow milestone">&gt;</span> <!-- 100% -->
+                </div>
                 <div class="metric-header">
                     <span class="metric-label">Next Milestone:</span>
                     <span class="milestone-name" id="milestone-name">--</span>
