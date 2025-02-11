@@ -152,8 +152,8 @@ function createTextSprite(text) {
     canvas.width = 256;
     canvas.height = 64;
     
-    ctx.font = '32px Future Earth';
-    ctx.fillStyle = '#00ffc8';
+    ctx.font = '32px "Orbitron"';  
+    ctx.fillStyle = '#4dfff3';  
     ctx.textAlign = 'center';
     ctx.fillText(text, 128, 40);
     
