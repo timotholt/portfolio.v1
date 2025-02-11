@@ -197,12 +197,7 @@ const pointsOfInterest = [
 
 // Create star field
 const starsGeometry = new THREE.BufferGeometry();
-const starsMaterial = new THREE.PointsMaterial({ 
-    color: 0xffffff, 
-    size: 1,
-    sizeAttenuation: false
-});
-
+const starsColors = new Float32Array(50000 * 3);
 const starsVertices = [];
 const radius = 1000;
 const starsCount = 50000;
@@ -214,9 +209,29 @@ for (let i = 0; i < starsCount; i++) {
     const y = radius * Math.sin(phi) * Math.sin(theta);
     const z = radius * Math.cos(phi);
     starsVertices.push(x, y, z);
+    
+    // Calculate brightness based on y position (higher stars are dimmer)
+    const yNormalized = Math.abs(y / radius);  // 0 to 1
+    const baseBrightness = 0.3;  // Minimum brightness
+    const brightness = baseBrightness + (1 - yNormalized) * 0.7;  // Brighter at horizon
+    
+    starsColors[i * 3] = brightness;
+    starsColors[i * 3 + 1] = brightness;
+    starsColors[i * 3 + 2] = brightness;
 }
 
 starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+starsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starsColors, 3));
+
+const starsMaterial = new THREE.PointsMaterial({ 
+    color: 0xffffff,
+    size: 1,
+    sizeAttenuation: false,
+    vertexColors: true,
+    opacity: 0.8,
+    transparent: true
+});
+
 const stars = new THREE.Points(starsGeometry, starsMaterial);
 scene.add(stars);
 
