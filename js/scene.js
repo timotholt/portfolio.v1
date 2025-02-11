@@ -3,7 +3,7 @@ export function createScene(THREE) {
     // Create scene and camera
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
 
     // Initialize renderers
     const renderer = new THREE.WebGLRenderer({ antialias: true });
