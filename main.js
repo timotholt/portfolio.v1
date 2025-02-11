@@ -170,7 +170,7 @@ milestones.forEach(milestone => {
 
 // Update rings opacity based on track distance
 function updateRingsOpacity() {
-    const wrappedProgress = progress % 1.0;
+    const wrappedProgress = ((progress % 1.0) + 1.0) % 1.0;  // Same wrapping as camera
     rings.forEach((ring, index) => {
         const milestone = (index + 1) * 0.25;
         
