@@ -61,12 +61,6 @@ function animate() {
 
 animate();
 
-// Handle mouse wheel
-document.addEventListener('wheel', (event) => {
-    const delta = event.deltaY * 0.0002;
-    targetProgress += delta;  
-});
-
 // Handle window resize
 window.addEventListener('resize', () => {
     const width = window.innerWidth;

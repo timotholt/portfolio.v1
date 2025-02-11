@@ -93,7 +93,7 @@ export function createControls(THREE, camera, curve, milestones) {
     }
 
     function handleMouseWheel(event) {
-        targetProgress += event.deltaY * 0.0001;
+        targetProgress += event.deltaY * 0.0002;
     }
 
     function updateCamera() {
