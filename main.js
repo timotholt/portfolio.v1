@@ -252,22 +252,64 @@ function updateRingsOpacity() {
             ring.material.color.setHex(0xffd700);
         }
         
-        // Calculate label position in screen space
-        const ringScreenPos = ring.position.clone().project(camera);
-        const offsetX = 200 / window.innerWidth * 2;  // Doubled the right offset
-        const offsetY = -120 / window.innerHeight * 2;  // Doubled the up offset
+        // Project ring center and edge to screen space
+        const ringCenter = ring.position.clone();
+        const screenCenter = ringCenter.clone().project(camera);
         
-        // Calculate end position for both label and line
+        // Project ring edge point (0.5 units = ring radius)
+        const edgePoint = ringCenter.clone().add(new THREE.Vector3(0.5, 0, 0));
+        const screenEdge = edgePoint.clone().project(camera);
+        
+        // Calculate ring radius in screen space
+        const ringScreenRadius = new THREE.Vector2(
+            screenEdge.x - screenCenter.x,
+            screenEdge.y - screenCenter.y
+        ).length();
+        
+        // Calculate distance-based damping (less scaling when close)
+        const cameraDistance = camera.position.distanceTo(ring.position);
+        const damping = Math.min(cameraDistance / 5, 1); // Full damping at 5 units or closer
+        
+        // Base the offset on the ring's screen size with damping, but ensure we stay outside
+        const minOffset = Math.max(ringScreenRadius * (1.2 + damping * 0.8), 0.05);
+        const rightOffset = minOffset * 2; // twice to the right
+        const upOffset = minOffset;
+        
+        // Get camera's right and up vectors in world space
+        const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        const cameraUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+        
+        // Project points 1 unit right and up from ring center
+        const rightPoint = ringCenter.clone().add(cameraRight);
+        const upPoint = ringCenter.clone().add(cameraUp);
+        const screenRight = rightPoint.clone().project(camera);
+        const screenUp = upPoint.clone().project(camera);
+        
+        // Calculate screen-space vectors
+        const rightVector = new THREE.Vector2(
+            screenRight.x - screenCenter.x,
+            screenRight.y - screenCenter.y
+        ).normalize();
+        
+        const upVector = new THREE.Vector2(
+            screenUp.x - screenCenter.x,
+            screenUp.y - screenCenter.y
+        ).normalize();
+        
+        // Combine the offsets using camera orientation
+        const offsetX = rightVector.x * rightOffset + upVector.x * upOffset;
+        const offsetY = rightVector.y * rightOffset + upVector.y * upOffset;
+        
+        // Calculate screen position and clamp to viewport
+        const screenX = Math.max(-0.95, Math.min(0.95, screenCenter.x + offsetX));
+        const screenY = Math.max(-0.95, Math.min(0.95, screenCenter.y + offsetY));
+        
+        // Calculate label position from clamped screen coordinates
         const labelPos = new THREE.Vector3(
-            ringScreenPos.x + offsetX,
-            ringScreenPos.y + offsetY,
-            ringScreenPos.z
+            screenX,
+            screenY,
+            screenCenter.z
         ).unproject(camera);
-        
-        // Scale the position to be closer to the camera
-        const direction = labelPos.clone().sub(ring.position).normalize();
-        const lineDistance = ring.position.distanceTo(camera.position) * 0.1;
-        labelPos.copy(ring.position).add(direction.multiplyScalar(lineDistance));
         
         // Update label position
         const label = ringLabels[index];
