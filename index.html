@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tim Otholt - Portfolio</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @font-face {
             font-family: 'Future Earth';
@@ -27,26 +28,56 @@
         #name-card {
             top: 20px;
             left: 20px;
-            background: rgba(0, 40, 30, 0.4);
+            background: rgba(0, 20, 15, 0.85);
             border: 1px solid rgba(0, 255, 200, 0.3);
+            padding: 0;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0, 255, 200, 0.1),
+                       inset 0 0 15px rgba(0, 255, 200, 0.05);
+            backdrop-filter: blur(5px);
+            min-width: 300px;
+            animation: borderPulse 4s infinite;
+        }
+        .card-header {
+            padding: 8px 15px;
+            background: linear-gradient(90deg, 
+                rgba(0, 255, 200, 0.1) 0%,
+                rgba(0, 255, 200, 0.2) 50%,
+                rgba(0, 255, 200, 0.1) 100%);
+            border-bottom: 1px solid rgba(0, 255, 200, 0.3);
+            border-radius: 4px 4px 0 0;
+        }
+        .card-body {
             padding: 15px;
-            border-radius: 3px;
         }
         #name {
-            font-size: 24px;
+            font-size: 20px;
             margin: 0;
-            font-weight: bold;
+            font-weight: normal;
             color: rgba(0, 255, 200, 1);
             text-transform: uppercase;
+            letter-spacing: 2px;
         }
         #contact {
             font-size: 14px;
-            opacity: 0.8;
-            margin-top: 8px;
-            font-family: 'Future Earth', 'Consolas', monospace;
+            opacity: 0.9;
+            font-family: 'Consolas', monospace;
         }
         #contact p {
-            margin: 2px 0;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            color: rgba(0, 255, 200, 0.9);
+        }
+        #contact i {
+            width: 20px;
+            margin-right: 10px;
+            color: rgba(0, 255, 200, 0.6);
+        }
+        @keyframes borderPulse {
+            0% { border-color: rgba(0, 255, 200, 0.3); }
+            50% { border-color: rgba(0, 255, 200, 0.5); }
+            100% { border-color: rgba(0, 255, 200, 0.3); }
         }
         #controls {
             position: absolute;
@@ -229,10 +260,14 @@
 <body>
     <div id="portfolio-container">
         <div id="name-card" class="hud-element">
-            <h1 id="name">Tim Otholt</h1>
-            <div id="contact">
-                <p>timotholt@gmail.com</p>
-                <p>408-406-1832</p>
+            <div class="card-header">
+                <h1 id="name">Tim Otholt</h1>
+            </div>
+            <div class="card-body">
+                <div id="contact">
+                    <p class="email"><i class="fas fa-envelope"></i>timotholt@gmail.com</p>
+                    <p class="phone"><i class="fas fa-phone"></i>408-406-1832</p>
+                </div>
             </div>
         </div>
         <div id="metrics" class="hud-element">
