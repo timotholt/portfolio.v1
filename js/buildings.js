@@ -79,17 +79,50 @@ export function createBuilding(THREE) {
 
     // Sides to add windows
     const sides = [
-        { rotation: [0, 0, 0], offset: [0, 0, buildingWidthSideB/2 + 0.5], length: buildingWidthSideA },
-        { rotation: [0, Math.PI, 0], offset: [0, 0, -buildingWidthSideB/2 - 0.5], length: buildingWidthSideA }
+        { 
+            rotation: [0, 0, 0], 
+            offset: [0, 0, buildingWidthSideB/2 + 0.5], 
+            length: buildingWidthSideA,
+            roomCount: roomsSideA
+        },
+        { 
+            rotation: [0, Math.PI, 0], 
+            offset: [0, 0, -buildingWidthSideB/2 - 0.5], 
+            length: buildingWidthSideA,
+            roomCount: roomsSideA
+        },
+        { 
+            rotation: [0, Math.PI/2, 0], 
+            offset: [buildingWidthSideA/2 + 0.5, 0, 0], 
+            length: buildingWidthSideB,
+            roomCount: roomsSideB
+        },
+        { 
+            rotation: [0, -Math.PI/2, 0], 
+            offset: [-buildingWidthSideA/2 - 0.5, 0, 0], 
+            length: buildingWidthSideB,
+            roomCount: roomsSideB
+        }
     ];
 
-    sides.forEach(side => {
-        const roomsOnSide = side.length === buildingWidthSideA ? roomsSideA : roomsSideB;
-        
+    // Randomly decide which sides get windows
+    let windowSides;
+    if (Math.random() < 0.95) {
+        // 95% of cases: all 4 sides get windows
+        windowSides = sides;
+    } else {
+        // 5% of cases: randomly select 2-3 sides
+        const numSidesToKeep = Math.floor(Math.random() * 2) + 2;  // 2 or 3 sides
+        windowSides = sides
+            .sort(() => 0.5 - Math.random())  // Shuffle sides
+            .slice(0, numSidesToKeep);
+    }
+
+    windowSides.forEach(side => {
         const windowInstances = new THREE.InstancedMesh(
             windowGeometry, 
             windowMaterial, 
-            Math.max(1, numFloors * roomsOnSide)
+            Math.max(1, numFloors * side.roomCount)
         );
         windowInstances.rotation.set(...side.rotation);
         windowInstances.position.set(...side.offset);
@@ -98,14 +131,14 @@ export function createBuilding(THREE) {
         let instanceCount = 0;
         
         // Calculate total width of windows and gutters
-        const totalWindowsWidth = roomsOnSide * windowWidth;
-        const totalGuttersWidth = (roomsOnSide - 1) * gutterSize;
+        const totalWindowsWidth = side.roomCount * windowWidth;
+        const totalGuttersWidth = (side.roomCount - 1) * gutterSize;
         
         // Calculate starting x position from the left edge of the building
         const startX = -side.length/2 + padding + windowWidth/2;
         
         for (let floor = 0; floor < numFloors; floor++) {
-            for (let room = 0; room < roomsOnSide; room++) {
+            for (let room = 0; room < side.roomCount; room++) {
                 const xPos = startX + 
                     room * (windowWidth + gutterSize);
                 
