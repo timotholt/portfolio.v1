@@ -316,6 +316,27 @@ function updateCamera() {
     lookAhead.y += 0.1; 
     camera.position.copy(point).add(cameraOffset);
     camera.lookAt(lookAhead);
+
+    // Update HUD metrics
+    const progressElement = document.getElementById('progress-value');
+    const milestoneElement = document.getElementById('milestone-value');
+    const milestoneNameElement = document.getElementById('milestone-name');
+    if (progressElement && milestoneElement && milestoneNameElement) {
+        progressElement.textContent = (wrappedProgress * 100).toFixed(2) + '%';
+        
+        const milestones = [
+            { progress: 0.25, name: "[ EDUCATION ]" },
+            { progress: 0.50, name: "[ EXPERIENCE ]" },
+            { progress: 0.75, name: "[ PROJECTS ]" },
+            { progress: 1.00, name: "[ CONTACT ]" }
+        ];
+        
+        // Find next milestone
+        const nextMilestone = milestones.find(m => m.progress > wrappedProgress) || milestones[0];
+        const distanceToMilestone = ((nextMilestone.progress - wrappedProgress) * 100).toFixed(2);
+        milestoneElement.textContent = distanceToMilestone;
+        milestoneNameElement.textContent = nextMilestone.name;
+    }
 }
 
 // Update particles

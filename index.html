@@ -3,21 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Three.js Portfolio</title>
+    <title>Tim Otholt - Portfolio</title>
     <link rel="stylesheet" href="style.css">
     <style>
         body { margin: 0; }
-        canvas { display: block; }
-        #portfolio-container {
+        #portfolio-container { 
             position: relative;
             width: 100vw;
             height: 100vh;
+            overflow: hidden;
         }
+        .hud-element {
+            position: absolute;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        #name-card {
+            top: 20px;
+            left: 20px;
+        }
+        #name {
+            font-size: 24px;
+            margin: 0;
+            font-weight: bold;
+        }
+        #contact {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 5px 0;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            text-align: right;
+        }
+        .key {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            padding: 5px 10px;
+            margin: 0 2px;
+            font-family: monospace;
+            font-size: 14px;
+            min-width: 20px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+        .key-description {
+            margin-left: 8px;
+            opacity: 0.8;
+        }
+        .control-row {
+            margin: 5px 0;
+        }
+        canvas { display: block; }
         .overlay {
             position: absolute;
             color: white;
             padding: 20px;
             font-family: Arial, sans-serif;
+        }
+        #metrics {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-family: 'Consolas', monospace;
+            color: rgba(0, 255, 200, 0.8);
+            text-shadow: 0 0 5px rgba(0, 255, 200, 0.5);
+        }
+        .metric-box {
+            background: rgba(0, 40, 30, 0.4);
+            border: 1px solid rgba(0, 255, 200, 0.3);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        .metric-label {
+            margin-right: 8px;
+        }
+        .milestone-name {
+            color: rgba(0, 255, 200, 1);
+            opacity: 1;
+        }
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+        .metric-unit {
+            font-size: 14px;
+            margin-left: 5px;
+        }
+        .metric-box::before {
+            content: ">";
+            margin-right: 5px;
+            color: rgba(0, 255, 200, 0.6);
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -30,8 +122,44 @@
 </head>
 <body>
     <div id="portfolio-container">
-        <div class="overlay">
-            <h1>Tim Otholt</h1>
+        <div id="name-card" class="hud-element">
+            <h1 id="name">Tim Otholt</h1>
+            <div id="contact">
+                <p>timotholt@gmail.com</p>
+                <p>408-406-1832</p>
+            </div>
+        </div>
+        <div id="metrics" class="hud-element">
+            <div class="metric-box">
+                <div class="metric-label">Track Position</div>
+                <div class="metric-value" id="progress-value">0.00%</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-header">
+                    <span class="metric-label">Next Milestone:</span>
+                    <span class="milestone-name" id="milestone-name">--</span>
+                </div>
+                <div class="metric-value">
+                    <span id="milestone-value">--.-</span>
+                    <span class="metric-unit">parsecs</span>
+                </div>
+            </div>
+        </div>
+        <div id="controls" class="hud-element">
+            <div class="control-row">
+                <span class="key">W</span>
+                <span class="key">↑</span>
+                <span class="key-description">Move Forward</span>
+            </div>
+            <div class="control-row">
+                <span class="key">S</span>
+                <span class="key">↓</span>
+                <span class="key-description">Move Backward</span>
+            </div>
+            <div class="control-row">
+                <span class="key">Space</span>
+                <span class="key-description">Jump to Next Project</span>
+            </div>
         </div>
     </div>
     <script src="main.js" defer></script>
