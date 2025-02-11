@@ -149,40 +149,59 @@ scene.add(track);
 const rings = [];
 const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
 const ringMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xffaa00,  
+    color: 0xffd700,  // Golden color
     transparent: true,
     opacity: 0.7,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending
+    blending: THREE.AdditiveBlending  // Add glow effect
 });
 
-for(let i = 0; i <= 8; i++) {
+// Create rings at milestone positions
+const milestones = [0.20, 0.45, 0.70, 0.95];  
+milestones.forEach(milestone => {
+    const point = curve.getPointAt(milestone);
+    const tangent = curve.getTangentAt(milestone);
+    
     const ring = new THREE.Mesh(ringGeometry, ringMaterial.clone()); 
-    const point = curve.getPoint(i / 8);
-    const tangent = curve.getTangent(i / 8);
     ring.position.copy(point);
     ring.lookAt(point.clone().add(tangent));
     rings.push(ring);
     scene.add(ring);
-}
+});
 
-// Update rings opacity based on camera distance
+// Update rings opacity based on track distance
 function updateRingsOpacity() {
-    const cameraPosition = camera.position;
-    rings.forEach((ring) => {
-        const distance = ring.position.distanceTo(cameraPosition);
-        const maxDistance = 5; 
-        const minOpacity = 0.1; 
+    const wrappedProgress = progress % 1.0;
+    rings.forEach((ring, index) => {
+        const milestone = (index + 1) * 0.25;
         
-        if (distance < 0.5) {
-            ring.material.opacity = 0.7;
-        } else if (distance < maxDistance) {
-            const fadeRange = maxDistance - 0.5;
-            const distanceInRange = distance - 0.5;
-            ring.material.opacity = 0.7 - ((0.7 - minOpacity) * (distanceInRange / fadeRange));
+        // Calculate shortest distance along track (handling wraparound)
+        let distance = Math.abs(milestone - wrappedProgress);
+        if (distance > 0.5) {
+            distance = 1 - distance;
+        }
+        
+        const minOpacity = 0.05;  // Dimmer when far
+        const maxOpacity = 1.0;   // Brighter when close
+        const startFade = 0.08;   // Start fading sooner
+        const fadeRange = 0.15;   // Faster fade
+        
+        if (distance <= startFade) {
+            ring.material.opacity = maxOpacity;
+            // Make color more intense when close
+            const whiteBlend = 1 - (distance / startFade);
+            const color = new THREE.Color(0xffd700);  // Base gold color
+            color.lerp(new THREE.Color(0xffffff), whiteBlend * 0.5);  // Blend towards white
+            ring.material.color = color;
+        } else if (distance <= startFade + fadeRange) {
+            const distanceInRange = distance - startFade;
+            // More aggressive fade
+            const fadeProgress = distanceInRange / fadeRange;
+            const fadeValue = Math.pow(1 - fadeProgress, 3);  // Cubic fade for faster dropoff
+            ring.material.opacity = minOpacity + (maxOpacity - minOpacity) * fadeValue;
+            ring.material.color.setHex(0xffd700);  // Reset to base gold color
         } else {
             ring.material.opacity = minOpacity;
+            ring.material.color.setHex(0xffd700);  // Reset to base gold color
         }
     });
 }
@@ -324,10 +343,10 @@ function updateCamera() {
     
     if (milestoneElement && milestoneNameElement && arrows.length > 0) {
         const milestones = [
-            { progress: 0.25, name: "[ EDUCATION ]" },
-            { progress: 0.50, name: "[ EXPERIENCE ]" },
-            { progress: 0.75, name: "[ PROJECTS ]" },
-            { progress: 1.00, name: "[ CONTACT ]" }
+            { progress: 0.20, name: "[ EDUCATION ]" },
+            { progress: 0.45, name: "[ EXPERIENCE ]" },
+            { progress: 0.70, name: "[ PROJECTS ]" },
+            { progress: 0.95, name: "[ CONTACT ]" }
         ];
         
         // Find next milestone
