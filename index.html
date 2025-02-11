@@ -6,6 +6,10 @@
     <title>Tim Otholt - Portfolio</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        @font-face {
+            font-family: 'Future Earth';
+            src: url('fonts/future-earth.ttf') format('truetype');
+        }
         body { margin: 0; }
         #portfolio-container { 
             position: relative;
@@ -16,23 +20,33 @@
         .hud-element {
             position: absolute;
             color: rgba(0, 255, 200, 0.8);
-            font-family: 'Arial', sans-serif;
+            font-family: 'Future Earth', 'Consolas', monospace;
             text-shadow: 0 0 10px rgba(0, 255, 200, 0.5);
+            letter-spacing: 1px;
         }
         #name-card {
             top: 20px;
             left: 20px;
+            background: rgba(0, 40, 30, 0.4);
+            border: 1px solid rgba(0, 255, 200, 0.3);
+            padding: 15px;
+            border-radius: 3px;
         }
         #name {
             font-size: 24px;
             margin: 0;
             font-weight: bold;
             color: rgba(0, 255, 200, 1);
+            text-transform: uppercase;
         }
         #contact {
             font-size: 14px;
             opacity: 0.8;
-            margin: 5px 0;
+            margin-top: 8px;
+            font-family: 'Future Earth', 'Consolas', monospace;
+        }
+        #contact p {
+            margin: 2px 0;
         }
         #controls {
             position: absolute;
@@ -47,19 +61,24 @@
             border-radius: 4px;
             padding: 5px 10px;
             margin: 0 2px;
-            font-family: monospace;
+            font-family: 'Future Earth', 'Consolas', monospace;
             font-size: 14px;
             min-width: 20px;
             text-align: center;
             box-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
             color: rgba(0, 255, 200, 1);
+            letter-spacing: 1px;
         }
         .key-description {
             margin-left: 8px;
             opacity: 0.8;
+            text-transform: uppercase;
+            font-size: 12px;
+            font-family: 'Future Earth', 'Consolas', monospace;
         }
         .control-row {
             margin: 5px 0;
+            letter-spacing: 1px;
         }
         canvas { display: block; }
         .overlay {
@@ -73,7 +92,7 @@
             top: 20px;
             right: 20px;
             text-align: right;
-            font-family: 'Consolas', monospace;
+            font-family: 'Future Earth', 'Consolas', monospace;
             color: rgba(0, 255, 200, 0.8);
             text-shadow: 0 0 5px rgba(0, 255, 200, 0.5);
         }
