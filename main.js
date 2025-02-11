@@ -74,39 +74,76 @@ const pointLight = new THREE.PointLight(0x4444ff, 1.0, 100);
 pointLight.position.set(0, 5, 0);
 scene.add(pointLight);
 
-// Function to create an iframe plane
-function createWebPagePlane(url, width = 500, height = 300, position = { x: 0, y: 200, z: -500 }, rotation = { x: -0.2, y: 0, z: 0 }) {
-    // Create iframe element
-    const iframe = document.createElement('iframe');
-    iframe.style.width = `${width}px`;
-    iframe.style.height = `${height}px`;
-    iframe.style.border = '0px';
-    iframe.src = url;
+// Create a test webpage in the scene
+function createWebPage() {
+    // Create a canvas for the webpage texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 500;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
 
-    // Create CSS3D object
-    const css3dObject = new THREE.CSS3DObject(iframe);
-    css3dObject.position.set(position.x, position.y, position.z);
-    css3dObject.rotation.set(rotation.x, rotation.y, rotation.z);
-    scene.add(css3dObject);
+    // Create webpage texture
+    const webpageTexture = new THREE.CanvasTexture(canvas);
+    webpageTexture.minFilter = THREE.LinearFilter;
+    webpageTexture.magFilter = THREE.LinearFilter;
 
-    // Create a placeholder mesh in the WebGL scene
-    const geometry = new THREE.PlaneGeometry(width, height);
-    const material = new THREE.MeshBasicMaterial({ 
-        opacity: 0,
-        transparent: true,
+    // Function to update the texture
+    function updateTexture() {
+        // Clear canvas
+        ctx.fillStyle = 'rgba(0, 40, 30, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw text
+        ctx.fillStyle = 'rgba(0, 255, 200, 1)';
+        ctx.font = '24px Consolas';
+        ctx.fillText('Test Web Page', 20, 40);
+        ctx.font = '16px Consolas';
+        ctx.fillText('This is rendered directly on a canvas', 20, 80);
+        ctx.fillText('Current time: ' + new Date().toLocaleTimeString(), 20, 120);
+
+        // Add some cyberpunk effects
+        ctx.strokeStyle = 'rgba(0, 255, 200, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+        
+        // Update texture
+        webpageTexture.needsUpdate = true;
+    }
+
+    // Create a plane with the webpage texture
+    const planeGeometry = new THREE.PlaneGeometry(500, 300);
+    const planeMaterial = new THREE.MeshStandardMaterial({
+        map: webpageTexture,
         side: THREE.DoubleSide,
-        depthWrite: false
+        transparent: true,
+        opacity: 0.9,
+        metalness: 0.1,
+        roughness: 0.8,
+        emissive: 0x002010,
+        emissiveIntensity: 0.2,
+        depthWrite: true,
+        depthTest: true
     });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.copy(css3dObject.position);
-    mesh.rotation.copy(css3dObject.rotation);
-    scene.add(mesh);
+    const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
+    planeMesh.position.set(0, 200, -500);
+    planeMesh.rotation.x = -0.2;
+    scene.add(planeMesh);
 
-    return { css3dObject, mesh };
+    // Start updating
+    setInterval(updateTexture, 1000);
+    updateTexture();
+
+    return { planeMesh, updateTexture };
 }
 
-// Create test webpage
-const testPage = createWebPagePlane('test-page.html');
+// Remove old webpage if it exists
+if (window.testPage) {
+    scene.remove(testPage.css3dObject);
+    scene.remove(testPage.mesh);
+}
+
+// Create the webpage
+const webpage = createWebPage();
 
 // Create a spline path
 const curve = new THREE.CatmullRomCurve3([
@@ -126,7 +163,6 @@ const curve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(-5, -5, -5),
     new THREE.Vector3(-10, -10, 0),
     new THREE.Vector3(-15, -5, 5)
-    // new THREE.Vector3(-20, 0, 0)
 ], true);  // Set to true for closed loop
 
 // Create track geometry
@@ -580,9 +616,9 @@ function updateCamera() {
     
     // Update camera rotation
     if (isRotatingLeft) {
-        cameraRotationOffset -= ROTATION_SPEED;
-    } else if (isRotatingRight) {
         cameraRotationOffset += ROTATION_SPEED;
+    } else if (isRotatingRight) {
+        cameraRotationOffset -= ROTATION_SPEED;
     } else if (cameraRotationOffset !== 0) {
         // Smoothly return to center when not rotating
         cameraRotationOffset *= (1 - ROTATION_RETURN_SPEED);
