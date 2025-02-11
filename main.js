@@ -329,7 +329,7 @@ const cameraOffset = new THREE.Vector3(0, 0.5, 0);
 
 function updateCamera() {
     progress += (targetProgress - progress) * 0.03;  
-    const wrappedProgress = progress % 1.0;  
+    const wrappedProgress = ((progress % 1.0) + 1.0) % 1.0;  // Always positive
     const point = curve.getPointAt(wrappedProgress);  
     const lookAhead = curve.getPointAt((wrappedProgress + 0.01) % 1.0);  
     lookAhead.y += 0.1; 
@@ -351,8 +351,9 @@ function updateCamera() {
         
         // Find next milestone
         const nextMilestone = milestones.find(m => m.progress > wrappedProgress) || milestones[0];
-        const distanceToMilestone = ((nextMilestone.progress - wrappedProgress) * 100).toFixed(2);
-        milestoneElement.textContent = distanceToMilestone;
+        let distance = Math.abs(nextMilestone.progress - wrappedProgress);
+        if (distance > 0.5) distance = 1 - distance;  // Use same wraparound logic as rings
+        milestoneElement.textContent = (distance * 100).toFixed(2);
         milestoneNameElement.textContent = nextMilestone.name;
 
         // Update arrows
@@ -390,7 +391,12 @@ function updateParticles() {
 }
 
 // Handle keyboard controls
+let lastKeyTime = 0;
 document.addEventListener('keydown', (event) => {
+    const now = Date.now();
+    if (now - lastKeyTime < 16) return; // Skip if less than 16ms (60fps) since last key
+    lastKeyTime = now;
+    
     const speed = 0.007;  
     switch(event.key.toLowerCase()) {
         case 'w':
