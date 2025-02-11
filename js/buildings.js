@@ -3,100 +3,151 @@
 const sharedGeometries = new Map();
 const sharedMaterials = new Map();
 
-export function createBuilding(THREE, params = {}) {
-    // Default parameters
-    const {
-        width = 20,
-        height = 100,
-        depth = 20,
-        windowRows = 20,
-        windowCols = 4,
-        color = 0x001133,
-        emissiveColor = 0x00ffcc,
-        emissiveIntensity = 0.5
-    } = params;
+export function createBuilding(THREE) {
+    // 1) Generate window dimensions
+    const windowWidth = 2 + Math.random() * 4;  // 2-6 units wide
+    const windowHeight = 4 + Math.random() * 6;  // 4-10 units tall
+
+    // 2) Generate gutter size
+    const gutterSize = ((windowWidth + windowHeight) / 2) * (0.5 * Math.random());
+
+    // 3) Padding equals gutter
+    const padding = gutterSize;
+
+    // 4) Generate number of floors
+    const numFloors = Math.floor(Math.random() * 30) + 1;  // 1-30 floors
+
+    // 5 & 6) Generate rooms for side A and B
+    const roomsSideA = Math.max(Math.floor(Math.random() * 10), 4);
+    const roomsSideB = Math.max(Math.floor(Math.random() * 10), 4);
+
+    // 7) Calculate building height
+    const buildingHeight = 
+        padding + 
+        (numFloors * windowHeight) + 
+        (gutterSize * (numFloors - 1)) + 
+        padding;
+
+    // 8 & 9) Calculate building width for sides A and B
+    const buildingWidthSideA = 
+        padding + 
+        (roomsSideA * windowWidth) + 
+        (gutterSize * (roomsSideA - 1)) + 
+        padding;
+
+    const buildingWidthSideB = 
+        padding + 
+        (roomsSideB * windowWidth) + 
+        (gutterSize * (roomsSideB - 1)) + 
+        padding;
+
+    console.log(`Building Details:
+    Height: ${buildingHeight}
+    Width Side A: ${buildingWidthSideA}
+    Width Side B: ${buildingWidthSideB}
+    Floors: ${numFloors}
+    Window Height: ${windowHeight}
+    Gutter Size: ${gutterSize}`);
 
     // Create building group
     const building = new THREE.Group();
 
-    // Get or create building geometry
-    const geometryKey = `${width}-${height}-${depth}`;
-    let buildingGeometry = sharedGeometries.get(geometryKey);
-    if (!buildingGeometry) {
-        buildingGeometry = new THREE.BoxGeometry(width, height, depth);
-        sharedGeometries.set(geometryKey, buildingGeometry);
-    }
-
-    // Get or create building material
-    const materialKey = `${color}-${emissiveIntensity}`;
-    let buildingMaterial = sharedMaterials.get(materialKey);
-    if (!buildingMaterial) {
-        buildingMaterial = new THREE.MeshPhongMaterial({
-            color: color,
-            emissive: color,
-            emissiveIntensity: 0.1,
-            shininess: 50
-        });
-        sharedMaterials.set(materialKey, buildingMaterial);
-    }
+    // Building base geometry (use the larger width)
+    const buildingWidth = Math.max(buildingWidthSideA, buildingWidthSideB);
+    const buildingDepth = Math.min(buildingWidth, 40);  // Limit depth
+    const buildingGeometry = new THREE.BoxGeometry(buildingWidth, buildingHeight, buildingDepth);
+    
+    // Cyberpunk-style building material
+    const buildingMaterial = new THREE.MeshPhongMaterial({
+        color: 0x001133 + Math.floor(Math.random() * 0x111111),
+        emissive: 0x001133,
+        emissiveIntensity: 0.1
+    });
 
     const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
     building.add(buildingMesh);
 
-    // Create window grid with instancing for better performance
-    const windowSize = 1;
-    const windowGeometry = new THREE.PlaneGeometry(windowSize, windowSize);
+    // Window generation
+    const windowGeometry = new THREE.PlaneGeometry(windowWidth, windowHeight);
     const windowMaterial = new THREE.MeshPhongMaterial({
-        color: emissiveColor,
-        emissive: emissiveColor,
-        emissiveIntensity: emissiveIntensity,
+        color: 0x00ffcc,
+        emissive: 0x00ffcc,
         transparent: true,
-        opacity: 0.8
+        opacity: 0.6,
+        polygonOffset: true,  // Enable polygon offset
+        polygonOffsetFactor: 1,  // Slight offset factor
+        polygonOffsetUnits: 1   // Slight offset units
     });
 
-    // Add windows to each side using fewer draw calls
+    // Sides to add windows
     const sides = [
-        { rotation: [0, 0, 0], offset: [0, 0, depth/2 + 0.1] },
-        { rotation: [0, Math.PI, 0], offset: [0, 0, -depth/2 - 0.1] }
+        { rotation: [0, 0, 0], offset: [0, 0, buildingDepth/2 + 0.5], length: buildingWidth },
+        { rotation: [0, Math.PI, 0], offset: [0, 0, -buildingDepth/2 - 0.5], length: buildingWidth }
     ];
 
-    // Only add windows to front and back for performance
     sides.forEach(side => {
-        const windowGroup = new THREE.Group();
-        windowGroup.rotation.set(...side.rotation);
-        windowGroup.position.set(...side.offset);
+        const roomsOnSide = side.length === buildingWidthSideA ? roomsSideA : roomsSideB;
+        
+        const windowInstances = new THREE.InstancedMesh(
+            windowGeometry, 
+            windowMaterial, 
+            numFloors * roomsOnSide
+        );
+        windowInstances.rotation.set(...side.rotation);
+        windowInstances.position.set(...side.offset);
 
-        // Create windows in a more efficient pattern
-        const windowsPerSide = windowRows * windowCols;
-        if (windowsPerSide > 0) {
-            const windowSpacingX = (width - windowSize) / (windowCols + 1);
-            const windowSpacingY = (height - windowSize) / (windowRows + 1);
+        const dummy = new THREE.Object3D();
+        let instanceCount = 0;
+        
+        for (let floor = 0; floor < numFloors; floor++) {
+            for (let room = 0; room < roomsOnSide; room++) {
+                // Position windows with padding and gutters
+                const xPos = -side.length/2 + 
+                    padding + 
+                    room * (windowWidth + gutterSize) + 
+                    windowWidth/2;
+                
+                const yPos = -buildingHeight/2 + 
+                    padding + 
+                    floor * (windowHeight + gutterSize) + 
+                    windowHeight/2;
 
-            for(let row = 0; row < windowRows; row += 2) {  // Skip every other row
-                for(let col = 0; col < windowCols; col++) {
-                    const window = new THREE.Mesh(windowGeometry, windowMaterial);
-                    window.position.set(
-                        -width/2 + windowSpacingX * (col + 1),
-                        -height/2 + windowSpacingY * (row + 1),
-                        0
-                    );
-                    windowGroup.add(window);
-                }
+                // Window intensity variation with more predictable randomness
+                const windowIntensity = Math.random() > 0.5 ? 
+                    0.1 :  // Brightly lit windows
+                    0.02;  // Dimly lit windows
+
+                dummy.position.set(xPos, yPos, 0);
+                dummy.updateMatrix();
+
+                windowInstances.setMatrixAt(instanceCount, dummy.matrix);
+                windowInstances.setColorAt(instanceCount, 
+                    new THREE.Color(0x00ffcc).multiplyScalar(windowIntensity)
+                );
+
+                instanceCount++;
             }
         }
-        building.add(windowGroup);
+
+        windowInstances.instanceMatrix.needsUpdate = true;
+        windowInstances.instanceColor.needsUpdate = true;
+        
+        if (instanceCount > 0) {
+            windowInstances.count = instanceCount;
+            building.add(windowInstances);
+        }
     });
 
-    // Add neon trim at the top
-    const trimGeometry = new THREE.BoxGeometry(width + 1, 1, depth + 1);
-    const trimMaterial = new THREE.MeshPhongMaterial({
-        color: emissiveColor,
-        emissive: emissiveColor,
-        emissiveIntensity: 1
+    // Neon Cyberpunk Roof
+    const roofGeometry = new THREE.BoxGeometry(buildingWidth + 2, 2, buildingDepth + 2);
+    const roofMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00ffcc,
+        emissive: 0x00ffcc,
+        emissiveIntensity: 2  // Extra bright for that cyberpunk glow
     });
-    const trim = new THREE.Mesh(trimGeometry, trimMaterial);
-    trim.position.y = height/2 + 0.5;
-    building.add(trim);
+    const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+    roof.position.y = buildingHeight/2 + 1;  // Slightly above building top
+    building.add(roof);
 
     return building;
 }

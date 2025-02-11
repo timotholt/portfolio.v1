@@ -62,22 +62,11 @@ export function createScene(THREE) {
             // Skip more positions randomly to create gaps
             if(Math.random() < 0.4) continue;  // Increased skip chance
             
-            const height = 50 + Math.random() * 150;
-            const width = 20 + Math.random() * 20;
-            const building = createBuilding(THREE, {
-                width: width,
-                height: height,
-                depth: width,
-                windowRows: Math.floor(height/8),  // Reduced window density
-                windowCols: 3,  // Reduced from 4
-                color: 0x001133,
-                emissiveColor: 0x00ffcc,
-                emissiveIntensity: 0.5
-            });
+            const building = createBuilding(THREE);
             
             building.position.set(
                 x * spacing + (Math.random() - 0.5) * 20,
-                height/2,
+                building.children[0].geometry.parameters.height / 2,  // Position at half building height
                 z * spacing + (Math.random() - 0.5) * 20
             );
             
