@@ -240,19 +240,22 @@ const starsMaterial = new THREE.PointsMaterial({
 const stars = new THREE.Points(starsGeometry, starsMaterial);
 scene.add(stars);
 
-// Create particles
-const particlesCount = 2000; 
-const particlesGeometry = new THREE.BufferGeometry();
-const particlesMaterial = new THREE.PointsMaterial({
-    color: 0x88aaff, 
-    size: 0.2,
-    sizeAttenuation: true,
-    transparent: true,
-    opacity: 0.6,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
-});
+// Create circular sprite texture for particles
+const canvas = document.createElement('canvas');
+canvas.width = 32;
+canvas.height = 32;
+const ctx = canvas.getContext('2d');
+const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+ctx.fillStyle = gradient;
+ctx.fillRect(0, 0, 32, 32);
+const particleTexture = new THREE.CanvasTexture(canvas);
 
+// Create particles
+const particlesCount = 12000;  // Tripled from 4000
+const particlesGeometry = new THREE.BufferGeometry();
+const particlesColors = new Float32Array(particlesCount * 3);
 const particlePositions = new Float32Array(particlesCount * 3);
 const particleVelocities = new Float32Array(particlesCount * 3);
 const particleSizes = new Float32Array(particlesCount);
@@ -272,11 +275,31 @@ for (let i = 0; i < particlesCount; i++) {
     particleVelocities[i * 3 + 1] = (Math.random() - 0.5) * 0.002;
     particleVelocities[i * 3 + 2] = -Math.random() * 0.01;
     
-    particleSizes[i] = Math.random() * 0.3 + 0.1; 
+    // Random brightness like the stars
+    const brightness = 0.2 + Math.random() * 0.8;  // Back to original range
+    particlesColors[i * 3] = brightness;
+    particlesColors[i * 3 + 1] = brightness;
+    particlesColors[i * 3 + 2] = brightness;
+    
+    particleSizes[i] = Math.random() * 0.3 + 0.1;  // Halved from (random * 0.6 + 0.2)
 }
 
 particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
 particlesGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
+particlesGeometry.setAttribute('color', new THREE.BufferAttribute(particlesColors, 3));
+
+const particlesMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.2,  // Halved from 0.4
+    sizeAttenuation: true,
+    map: particleTexture,
+    transparent: true,
+    opacity: 0.35,  // Halved from 0.7
+    vertexColors: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+});
+
 const particles = new THREE.Points(particlesGeometry, particlesMaterial);
 scene.add(particles);
 
