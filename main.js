@@ -170,8 +170,12 @@ function createTextSprite(text) {
 
 // Create rings array to store references
 const rings = [];
-const ringLabels = [];
-const ringConnectors = [];  // Store connecting lines
+const milestones = [
+    { position: 0.15, name: "EDUCATION" },
+    { position: 0.35, name: "EXPERIENCE" },
+    { position: 0.67, name: "PROJECTS" },
+    { position: 0.85, name: "CONTACT" }
+]; 
 const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
 const ringMaterial = new THREE.MeshBasicMaterial({ 
     color: 0xffd700,
@@ -190,27 +194,24 @@ const connectorMaterial = new THREE.LineBasicMaterial({
 });
 
 // Create rings at milestone positions
-const milestones = [0.18, 0.43, 0.68, 0.93]; // Offset slightly to stop before rings
-const milestoneNames = ["EDUCATION", "EXPERIENCE", "PROJECTS", "CONTACT"];
 const minOpacity = 0.05;   // Dimmer when far
 const maxOpacity = 0.7;    // Less bright when close
 const startFade = 0.08;    // Start fading sooner
 const fadeRange = 0.15;    // Faster fade
 
 milestones.forEach((milestone, index) => {
-    const point = curve.getPointAt(milestone);
-    const tangent = curve.getTangentAt(milestone);
+    const point = curve.getPointAt(milestone.position);
+    const tangent = curve.getTangentAt(milestone.position);
     
     const ring = new THREE.Mesh(ringGeometry, ringMaterial.clone());
     ring.position.copy(point);
     ring.lookAt(point.clone().add(tangent));
-    rings.push(ring);
     scene.add(ring);
     
     // Add text label
-    const label = createTextSprite(milestoneNames[index]);
+    const label = createTextSprite(milestone.name);
     label.position.copy(point);
-    ringLabels.push(label);
+    rings.push({ ring, label });
     scene.add(label);
     
     // Create connector line
@@ -219,7 +220,7 @@ milestones.forEach((milestone, index) => {
     connectorGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
     const connector = new THREE.Line(connectorGeometry, connectorMaterial);
     connector.renderOrder = 1;  // Render after rings
-    ringConnectors.push(connector);
+    rings[index].connector = connector;
     scene.add(connector);
 });
 
@@ -227,17 +228,16 @@ milestones.forEach((milestone, index) => {
 function updateRingsOpacity() {
     const wrappedProgress = ((progress % 1.0) + 1.0) % 1.0;  // Same wrapping as camera
     
-    rings.forEach((ring, index) => {
-        const milestone = milestones[index];
-        
+    milestones.forEach((milestone, index) => {
         // Calculate shortest distance along track (handling wraparound)
-        let trackDistance = Math.abs(milestone - wrappedProgress);
+        let trackDistance = Math.abs(milestone.position - wrappedProgress);
         if (trackDistance > 0.5) {
             trackDistance = 1 - trackDistance;
         }
         
         // Update ring opacity and color
         if (trackDistance <= startFade) {
+            const ring = rings[index].ring;
             ring.material.opacity = maxOpacity;
             const whiteBlend = 1 - (trackDistance / startFade);
             const color = new THREE.Color(0xffd700);
@@ -245,15 +245,17 @@ function updateRingsOpacity() {
             ring.material.color = color;
         } else if (trackDistance <= startFade + fadeRange) {
             const fadeValue = Math.pow(1 - ((trackDistance - startFade) / fadeRange), 3);
+            const ring = rings[index].ring;
             ring.material.opacity = minOpacity + (maxOpacity - minOpacity) * fadeValue;
             ring.material.color.setHex(0xffd700);
         } else {
+            const ring = rings[index].ring;
             ring.material.opacity = minOpacity;
             ring.material.color.setHex(0xffd700);
         }
         
         // Project ring center and edge to screen space
-        const ringCenter = ring.position.clone();
+        const ringCenter = rings[index].ring.position.clone();
         const screenCenter = ringCenter.clone().project(camera);
         
         // Check if ring is visible (in front of camera and within viewport)
@@ -262,8 +264,8 @@ function updateRingsOpacity() {
                          Math.abs(screenCenter.y) <= 1;
         
         // Update label and connector visibility
-        const label = ringLabels[index];
-        const connector = ringConnectors[index];
+        const label = rings[index].label;
+        const connector = rings[index].connector;
         label.element.style.display = isVisible ? '' : 'none';
         connector.visible = isVisible;
         
@@ -281,7 +283,7 @@ function updateRingsOpacity() {
         ).length();
         
         // Calculate distance-based damping (less scaling when close)
-        const cameraDistance = camera.position.distanceTo(ring.position);
+        const cameraDistance = camera.position.distanceTo(ringCenter);
         const damping = Math.min(cameraDistance / 5, 1); // Full damping at 5 units or closer
         
         // Base the offset on the ring's screen size with damping, but ensure we stay outside
@@ -346,9 +348,9 @@ function updateRingsOpacity() {
         const positions = connector.geometry.attributes.position.array;
         
         // Start at ring position
-        positions[0] = ring.position.x;
-        positions[1] = ring.position.y;
-        positions[2] = ring.position.z;
+        positions[0] = ringCenter.x;
+        positions[1] = ringCenter.y;
+        positions[2] = ringCenter.z;
         
         // End at label position
         positions[3] = labelPos.x;
@@ -362,21 +364,17 @@ function updateRingsOpacity() {
 function handleSpacebarPress() {
     const currentPos = progress % 1.0;
     const epsilon = 0.01; // Increased from 0.001
-    const milestones = [0.18, 0.43, 0.68, 0.93]; // Offset slightly to stop before rings
-    console.log('Current position:', currentPos);
-    
-    // Find the current milestone index
-    const currentIndex = milestones.findIndex(m => Math.abs(m - currentPos) < epsilon);
-    console.log('Current milestone index:', currentIndex);
+    const nextMilestoneIndex = milestones.findIndex(m => Math.abs(m.position - currentPos) < epsilon);
+    console.log('Current milestone index:', nextMilestoneIndex);
     
     // Get next milestone index
-    const nextIndex = (currentIndex === -1) 
-        ? milestones.findIndex(m => m > currentPos)
-        : (currentIndex + 1) % milestones.length;
+    const nextIndex = (nextMilestoneIndex === -1) 
+        ? milestones.findIndex(m => m.position > currentPos)
+        : (nextMilestoneIndex + 1) % milestones.length;
     console.log('Next milestone index:', nextIndex);
     
     // Get next milestone value
-    const nextMilestone = milestones[nextIndex];
+    const nextMilestone = milestones[nextIndex].position;
     console.log('Next milestone:', nextMilestone);
     
     // If we're wrapping around to the beginning
@@ -554,19 +552,12 @@ function updateCamera() {
     const arrows = document.querySelectorAll('.arrow');
     
     if (milestoneElement && milestoneNameElement && arrows.length > 0) {
-        const milestones = [
-            { progress: 0.18, name: "[ EDUCATION ]" },
-            { progress: 0.43, name: "[ EXPERIENCE ]" },
-            { progress: 0.68, name: "[ PROJECTS ]" },
-            { progress: 0.93, name: "[ CONTACT ]" }
-        ];
-        
         // Find next milestone
-        const nextMilestone = milestones.find(m => m.progress > wrappedProgress) || milestones[0];
-        let distance = Math.abs(nextMilestone.progress - wrappedProgress);
+        const nextMilestoneIndex = milestones.findIndex(m => m.position > wrappedProgress) || 0;
+        let distance = Math.abs(milestones[nextMilestoneIndex].position - wrappedProgress);
         if (distance > 0.5) distance = 1 - distance;  // Use same wraparound logic as rings
         milestoneElement.textContent = (distance * 100).toFixed(2);
-        milestoneNameElement.textContent = nextMilestone.name;
+        milestoneNameElement.textContent = milestones[nextMilestoneIndex].name;
 
         // Update arrows
         const currentPosition = Math.floor(wrappedProgress * 20);
