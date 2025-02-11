@@ -190,7 +190,7 @@ const connectorMaterial = new THREE.LineBasicMaterial({
 });
 
 // Create rings at milestone positions
-const milestones = [0.20, 0.45, 0.70, 0.95];
+const milestones = [0.18, 0.43, 0.68, 0.93]; // Offset slightly to stop before rings
 const milestoneNames = ["EDUCATION", "EXPERIENCE", "PROJECTS", "CONTACT"];
 const minOpacity = 0.05;   // Dimmer when far
 const maxOpacity = 0.7;    // Less bright when close
@@ -359,6 +359,36 @@ function updateRingsOpacity() {
     });
 }
 
+function handleSpacebarPress() {
+    const currentPos = progress % 1.0;
+    const epsilon = 0.01; // Increased from 0.001
+    const milestones = [0.18, 0.43, 0.68, 0.93]; // Offset slightly to stop before rings
+    console.log('Current position:', currentPos);
+    
+    // Find the current milestone index
+    const currentIndex = milestones.findIndex(m => Math.abs(m - currentPos) < epsilon);
+    console.log('Current milestone index:', currentIndex);
+    
+    // Get next milestone index
+    const nextIndex = (currentIndex === -1) 
+        ? milestones.findIndex(m => m > currentPos)
+        : (currentIndex + 1) % milestones.length;
+    console.log('Next milestone index:', nextIndex);
+    
+    // Get next milestone value
+    const nextMilestone = milestones[nextIndex];
+    console.log('Next milestone:', nextMilestone);
+    
+    // If we're wrapping around to the beginning
+    if (nextIndex === 0) {
+        targetProgress = Math.ceil(progress) + nextMilestone;
+        console.log('Wrapping to next cycle:', targetProgress);
+    } else {
+        targetProgress = Math.floor(progress) + nextMilestone;
+        console.log('Moving to next milestone:', targetProgress);
+    }
+}
+
 // Create star field
 const starsGeometry = new THREE.BufferGeometry();
 const starsColors = new Float32Array(50000 * 3);
@@ -478,7 +508,7 @@ let isRotatingLeft = false;
 let isRotatingRight = false;
 
 function handleKeyState() {
-    const speed = 0.007;
+    const speed = 0.012; // Increased from 0.007
     if (keyState.w || keyState.arrowup) targetProgress += speed;
     if (keyState.s || keyState.arrowdown) targetProgress -= speed;
     if (keyState.a || keyState.arrowleft) isRotatingLeft = true;
@@ -525,10 +555,10 @@ function updateCamera() {
     
     if (milestoneElement && milestoneNameElement && arrows.length > 0) {
         const milestones = [
-            { progress: 0.20, name: "[ EDUCATION ]" },
-            { progress: 0.45, name: "[ EXPERIENCE ]" },
-            { progress: 0.70, name: "[ PROJECTS ]" },
-            { progress: 0.95, name: "[ CONTACT ]" }
+            { progress: 0.18, name: "[ EDUCATION ]" },
+            { progress: 0.43, name: "[ EXPERIENCE ]" },
+            { progress: 0.68, name: "[ PROJECTS ]" },
+            { progress: 0.93, name: "[ CONTACT ]" }
         ];
         
         // Find next milestone
@@ -616,14 +646,15 @@ document.addEventListener('keydown', (event) => {
         } else if (mappedKey === 'space') {
             const keyElement = document.querySelector('.key-spacebar');
             if (keyElement) keyElement.classList.add('active');
+            handleSpacebarPress();
         }
     }
     
     if (key === ' ') {  // Spacebar
-        const currentPos = progress % 1.0;
-        const milestones = [0.20, 0.45, 0.70, 0.95];
-        const nextMilestone = milestones.find(m => m > currentPos) || milestones[0];
-        targetProgress = nextMilestone;
+        // const currentPos = progress % 1.0;
+        // const milestones = [0.20, 0.45, 0.70, 0.95];
+        // const nextMilestone = milestones.find(m => m > currentPos) || milestones[0];
+        // targetProgress = nextMilestone;
     }
 });
 
@@ -675,11 +706,7 @@ function setupTouchControls() {
         console.log('Key states:', keyState);
         
         if (mappedKey === 'space') {
-            // For spacebar, trigger the milestone jump
-            const currentPos = progress % 1.0;
-            const milestones = [0.20, 0.45, 0.70, 0.95];
-            const nextMilestone = milestones.find(m => m > currentPos) || milestones[0];
-            targetProgress = nextMilestone;
+            handleSpacebarPress();
         }
     }
     
