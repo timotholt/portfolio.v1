@@ -49,8 +49,16 @@ const curve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(5, -5, -5),
     new THREE.Vector3(10, -10, 0),
     new THREE.Vector3(15, -5, 5),
-    new THREE.Vector3(20, 0, 0)
-]);
+    new THREE.Vector3(20, 0, 0),
+    new THREE.Vector3(15, 5, -5),
+    new THREE.Vector3(10, 10, 0),
+    new THREE.Vector3(5, 5, 5),
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(-5, -5, -5),
+    new THREE.Vector3(-10, -10, 0),
+    new THREE.Vector3(-15, -5, 5)
+    // new THREE.Vector3(-20, 0, 0)
+], true);  // Set to true for closed loop
 
 // Create track geometry
 const segments = 200;
