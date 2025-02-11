@@ -122,11 +122,13 @@ function createWebPage() {
         emissive: 0x002010,
         emissiveIntensity: 0.2,
         depthWrite: true,
-        depthTest: true
+        depthTest: true,
+        alphaTest: 0.1
     });
     const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
     planeMesh.position.set(0, 200, -500);
     planeMesh.rotation.x = -0.2;
+    planeMesh.renderOrder = 0;  // Render first
     scene.add(planeMesh);
 
     // Start updating
@@ -248,6 +250,7 @@ const trackMaterial = new THREE.ShaderMaterial({
 });
 
 const track = new THREE.Mesh(trackGeometry, trackMaterial);
+track.renderOrder = 1;  // Render after webpage
 scene.add(track);
 
 // Create text label
