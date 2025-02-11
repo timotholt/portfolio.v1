@@ -360,16 +360,41 @@ scene.add(particles);
 // Camera controls
 let progress = 0;
 let targetProgress = 0;
+let cameraRotationOffset = 0;  // Current camera rotation offset
 const cameraOffset = new THREE.Vector3(0, 0.5, 0);
+const ROTATION_SPEED = 0.05;  // How fast to rotate
+const ROTATION_RETURN_SPEED = 0.1;  // How fast to return to center
+let isRotatingLeft = false;
+let isRotatingRight = false;
 
 function updateCamera() {
     progress += (targetProgress - progress) * 0.03;  
     const wrappedProgress = ((progress % 1.0) + 1.0) % 1.0;  // Always positive
     const point = curve.getPointAt(wrappedProgress);  
-    const lookAhead = curve.getPointAt((wrappedProgress + 0.01) % 1.0);  
-    lookAhead.y += 0.1; 
+    const lookAhead = curve.getPointAt((wrappedProgress + 0.01) % 1.0);
+    
+    // Update camera rotation
+    if (isRotatingLeft) {
+        cameraRotationOffset -= ROTATION_SPEED;
+    } else if (isRotatingRight) {
+        cameraRotationOffset += ROTATION_SPEED;
+    } else if (cameraRotationOffset !== 0) {
+        // Smoothly return to center when not rotating
+        cameraRotationOffset *= (1 - ROTATION_RETURN_SPEED);
+        if (Math.abs(cameraRotationOffset) < 0.001) cameraRotationOffset = 0;
+    }
+    
+    // Apply camera position and rotation
     camera.position.copy(point).add(cameraOffset);
-    camera.lookAt(lookAhead);
+    
+    // Create a look target that's offset by our rotation
+    const forward = new THREE.Vector3().subVectors(lookAhead, point);
+    const right = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
+    const rotatedTarget = new THREE.Vector3().copy(lookAhead);
+    rotatedTarget.add(right.multiplyScalar(cameraRotationOffset));
+    rotatedTarget.y += 0.1;
+    
+    camera.lookAt(rotatedTarget);
 
     // Update HUD metrics
     const milestoneElement = document.getElementById('milestone-value');
@@ -444,11 +469,32 @@ document.addEventListener('keydown', (event) => {
         case 'arrowdown':
             targetProgress -= speed;
             break;
+        case 'a':
+        case 'arrowleft':
+            isRotatingLeft = true;
+            break;
+        case 'd':
+        case 'arrowright':
+            isRotatingRight = true;
+            break;
         case ' ':  // Spacebar
             const currentPos = progress % 1.0;
             const milestones = [0.20, 0.45, 0.70, 0.95];
             const nextMilestone = milestones.find(m => m > currentPos) || milestones[0];
             targetProgress = nextMilestone;
+            break;
+    }
+});
+
+document.addEventListener('keyup', (event) => {
+    switch(event.key.toLowerCase()) {
+        case 'a':
+        case 'arrowleft':
+            isRotatingLeft = false;
+            break;
+        case 'd':
+        case 'arrowright':
+            isRotatingRight = false;
             break;
     }
 });
