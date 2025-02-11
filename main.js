@@ -59,6 +59,7 @@ const trackThickness = 0.1;
 const trackGeometry = new THREE.BufferGeometry();
 const vertices = [];
 const indices = [];
+const uvs = [];  
 
 for (let i = 0; i <= segments; i++) {
     const t = i / segments;
@@ -72,6 +73,13 @@ for (let i = 0; i <= segments; i++) {
         point.x - binormal.x * trackWidth/2, point.y + trackThickness/2, point.z - binormal.z * trackWidth/2,
         point.x + binormal.x * trackWidth/2, point.y - trackThickness/2, point.z + binormal.z * trackWidth/2,
         point.x - binormal.x * trackWidth/2, point.y - trackThickness/2, point.z - binormal.z * trackWidth/2
+    );
+    
+    uvs.push(
+        t * 10, 1,  
+        t * 10, 0,  
+        t * 10, 1,  
+        t * 10, 0   
     );
 
     if (i < segments) {
@@ -88,14 +96,39 @@ for (let i = 0; i <= segments; i++) {
 }
 
 trackGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+trackGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));  
 trackGeometry.setIndex(indices);
 trackGeometry.computeVertexNormals();
 
-// Create track material
-const trackMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0x661111,  // Much darker red
+// Create track material with animated shader
+const trackMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        time: { value: 0 },
+        opacity: { value: 0.7 }
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform float time;
+        uniform float opacity;
+        varying vec2 vUv;
+        
+        void main() {
+            // Create moving chevron pattern
+            float v = vUv.x * 20.0 - time;
+            float chevron = abs(fract(v) * 2.0 - 1.0);
+            chevron = step(chevron, 0.5);
+            
+            // Output color
+            gl_FragColor = vec4(1.0, 0.2, 0.2, chevron * opacity);
+        }
+    `,
     transparent: true,
-    opacity: 0.4,     // More transparent
     side: THREE.DoubleSide,
     depthWrite: false,
     blending: THREE.AdditiveBlending
@@ -108,7 +141,7 @@ scene.add(track);
 const rings = [];
 const ringGeometry = new THREE.TorusGeometry(0.5, 0.02, 16, 32);
 const ringMaterial = new THREE.MeshBasicMaterial({ 
-    color: 0xffaa00,  // Keep the rings the same
+    color: 0xffaa00,  
     transparent: true,
     opacity: 0.7,
     side: THREE.DoubleSide,
@@ -117,7 +150,7 @@ const ringMaterial = new THREE.MeshBasicMaterial({
 });
 
 for(let i = 0; i <= 8; i++) {
-    const ring = new THREE.Mesh(ringGeometry, ringMaterial.clone()); // Clone material for individual control
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial.clone()); 
     const point = curve.getPoint(i / 8);
     const tangent = curve.getTangent(i / 8);
     ring.position.copy(point);
@@ -131,20 +164,16 @@ function updateRingsOpacity() {
     const cameraPosition = camera.position;
     rings.forEach((ring) => {
         const distance = ring.position.distanceTo(cameraPosition);
-        const maxDistance = 5; // Distance at which rings start to fade
-        const minOpacity = 0.1; // Minimum opacity when far away
+        const maxDistance = 5; 
+        const minOpacity = 0.1; 
         
-        // Calculate opacity based on distance
         if (distance < 0.5) {
-            // When very close or passing through
             ring.material.opacity = 0.7;
         } else if (distance < maxDistance) {
-            // Linear fade between 0.5 and maxDistance
             const fadeRange = maxDistance - 0.5;
             const distanceInRange = distance - 0.5;
             ring.material.opacity = 0.7 - ((0.7 - minOpacity) * (distanceInRange / fadeRange));
         } else {
-            // Beyond maxDistance
             ring.material.opacity = minOpacity;
         }
     });
@@ -254,7 +283,11 @@ function animate() {
     updateParticles();
     updateCamera();
     updateRingsOpacity();
-    composer.render();  
+    
+    // Update shader time
+    trackMaterial.uniforms.time.value += 0.03;
+    
+    composer.render();
 }
 
 // Set initial camera position and start animation
