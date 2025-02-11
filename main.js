@@ -508,7 +508,7 @@ let isRotatingLeft = false;
 let isRotatingRight = false;
 
 function handleKeyState() {
-    const speed = 0.012; // Increased from 0.007
+    const speed = 0.005; // Reduced from 0.012
     if (keyState.w || keyState.arrowup) targetProgress += speed;
     if (keyState.s || keyState.arrowdown) targetProgress -= speed;
     if (keyState.a || keyState.arrowleft) isRotatingLeft = true;
