@@ -187,6 +187,14 @@ function updateRingsOpacity() {
     });
 }
 
+// Define points of interest
+const pointsOfInterest = [
+    { position: 0.0, name: "Start" },
+    { position: 0.25, name: "Project 1" },
+    { position: 0.5, name: "Project 2" },
+    { position: 0.75, name: "Project 3" }
+];
+
 // Create star field
 const starsGeometry = new THREE.BufferGeometry();
 const starsMaterial = new THREE.PointsMaterial({ 
@@ -258,10 +266,10 @@ let targetProgress = 0;
 const cameraOffset = new THREE.Vector3(0, 0.5, 0);
 
 function updateCamera() {
-    progress += (targetProgress - progress) * 0.1;
-    const wrappedProgress = progress % 1.0;  // This will wrap from 0 to 1
-    const point = curve.getPointAt(wrappedProgress);  // Using getPointAt for better interpolation
-    const lookAhead = curve.getPointAt((wrappedProgress + 0.01) % 1.0);  // Also wrap the lookahead
+    progress += (targetProgress - progress) * 0.03;  
+    const wrappedProgress = progress % 1.0;  
+    const point = curve.getPointAt(wrappedProgress);  
+    const lookAhead = curve.getPointAt((wrappedProgress + 0.01) % 1.0);  
     lookAhead.y += 0.1; 
     camera.position.copy(point).add(cameraOffset);
     camera.lookAt(lookAhead);
@@ -285,6 +293,27 @@ function updateParticles() {
     
     particlesGeometry.attributes.position.needsUpdate = true;
 }
+
+// Handle keyboard controls
+document.addEventListener('keydown', (event) => {
+    const speed = 0.007;  
+    switch(event.key.toLowerCase()) {
+        case 'w':
+        case 'arrowup':
+            targetProgress += speed;
+            break;
+        case 's':
+        case 'arrowdown':
+            targetProgress -= speed;
+            break;
+        case ' ':  // Spacebar
+            const currentPos = progress % 1.0;
+            const nextPoint = pointsOfInterest.find(p => p.position > currentPos) 
+                || pointsOfInterest[0];  // Wrap around to first point
+            targetProgress = nextPoint.position;
+            break;
+    }
+});
 
 // Animation loop
 function animate() {
