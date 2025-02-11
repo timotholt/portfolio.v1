@@ -52,10 +52,8 @@ export function createBuilding(THREE) {
     // Create building group
     const building = new THREE.Group();
 
-    // Building base geometry (use the larger width)
-    const buildingWidth = Math.max(buildingWidthSideA, buildingWidthSideB);
-    const buildingDepth = Math.min(buildingWidth, 40);  // Limit depth
-    const buildingGeometry = new THREE.BoxGeometry(buildingWidth, buildingHeight, buildingDepth);
+    // Building base geometry using only side widths and height
+    const buildingGeometry = new THREE.BoxGeometry(buildingWidthSideA, buildingHeight, buildingWidthSideB);
     
     // Cyberpunk-style building material
     const buildingMaterial = new THREE.MeshPhongMaterial({
@@ -74,15 +72,15 @@ export function createBuilding(THREE) {
         emissive: 0x00ffcc,
         transparent: true,
         opacity: 0.6,
-        polygonOffset: true,  // Enable polygon offset
-        polygonOffsetFactor: 1,  // Slight offset factor
-        polygonOffsetUnits: 1   // Slight offset units
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1
     });
 
     // Sides to add windows
     const sides = [
-        { rotation: [0, 0, 0], offset: [0, 0, buildingDepth/2 + 0.5], length: buildingWidth },
-        { rotation: [0, Math.PI, 0], offset: [0, 0, -buildingDepth/2 - 0.5], length: buildingWidth }
+        { rotation: [0, 0, 0], offset: [0, 0, buildingWidthSideB/2 + 0.5], length: buildingWidthSideA },
+        { rotation: [0, Math.PI, 0], offset: [0, 0, -buildingWidthSideB/2 - 0.5], length: buildingWidthSideA }
     ];
 
     sides.forEach(side => {
@@ -91,7 +89,7 @@ export function createBuilding(THREE) {
         const windowInstances = new THREE.InstancedMesh(
             windowGeometry, 
             windowMaterial, 
-            numFloors * roomsOnSide
+            Math.max(1, numFloors * roomsOnSide)
         );
         windowInstances.rotation.set(...side.rotation);
         windowInstances.position.set(...side.offset);
@@ -99,23 +97,27 @@ export function createBuilding(THREE) {
         const dummy = new THREE.Object3D();
         let instanceCount = 0;
         
+        // Calculate total width of windows and gutters
+        const totalWindowsWidth = roomsOnSide * windowWidth;
+        const totalGuttersWidth = (roomsOnSide - 1) * gutterSize;
+        
+        // Calculate starting x position from the left edge of the building
+        const startX = -side.length/2 + padding + windowWidth/2;
+        
         for (let floor = 0; floor < numFloors; floor++) {
             for (let room = 0; room < roomsOnSide; room++) {
-                // Position windows with padding and gutters
-                const xPos = -side.length/2 + 
-                    padding + 
-                    room * (windowWidth + gutterSize) + 
-                    windowWidth/2;
+                const xPos = startX + 
+                    room * (windowWidth + gutterSize);
                 
                 const yPos = -buildingHeight/2 + 
                     padding + 
                     floor * (windowHeight + gutterSize) + 
                     windowHeight/2;
 
-                // Window intensity variation with more predictable randomness
-                const windowIntensity = Math.random() > 0.5 ? 
-                    0.1 :  // Brightly lit windows
-                    0.02;  // Dimly lit windows
+                // New intensity calculation for more contrast
+                const windowIntensity = Math.random() < 0.5 
+                    ? Math.pow(Math.random(), 5) * 0.3  // Darker windows
+                    : Math.pow(Math.random(), 2) * 0.8; // Brighter windows
 
                 dummy.position.set(xPos, yPos, 0);
                 dummy.updateMatrix();
@@ -139,7 +141,7 @@ export function createBuilding(THREE) {
     });
 
     // Neon Cyberpunk Roof
-    const roofGeometry = new THREE.BoxGeometry(buildingWidth + 2, 2, buildingDepth + 2);
+    const roofGeometry = new THREE.BoxGeometry(buildingWidthSideA + 2, 2, buildingWidthSideB + 2);
     const roofMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ffcc,
         emissive: 0x00ffcc,

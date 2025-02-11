@@ -76,18 +76,36 @@ export function createScene(THREE) {
         }
     }
 
+    // Add a global flag to control bloom
+    const ENABLE_BLOOM = false;  // Set to true to enable bloom
+
     // Post-processing setup
     const composer = new THREE.EffectComposer(renderer);
     const renderPass = new THREE.RenderPass(scene, camera);
     composer.addPass(renderPass);
 
-    const bloomPass = new THREE.UnrealBloomPass(
-        new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5),  
-        1.2,    
-        0.5,    
-        0.3     
-    );
-    composer.addPass(bloomPass);
+    // Only add bloom pass if ENABLE_BLOOM is true
+    let bloomPass;
+    if (ENABLE_BLOOM) {
+        bloomPass = new THREE.UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth * 0.5, window.innerHeight * 0.5),  
+            1.2,    // Reduced from previous value
+            0.5,    
+            0.1     // Lowered threshold
+        );
+        composer.addPass(bloomPass);
+    }
+
+    // Modify render function to use standard renderer if bloom is disabled
+    function render() {
+        if (ENABLE_BLOOM) {
+            composer.render();
+        } else {
+            renderer.render(scene, camera);
+        }
+        css3dRenderer.render(scene, camera);
+        labelRenderer.render(scene, camera);
+    }
 
     // Handle window resize
     function handleResize() {
@@ -104,20 +122,13 @@ export function createScene(THREE) {
     }
     window.addEventListener('resize', handleResize);
 
-    // Render function
-    function render() {
-        composer.render();
-        css3dRenderer.render(scene, camera);
-        labelRenderer.render(scene, camera);
-    }
-
     return {
         scene,
         camera,
         renderer,
         css3dRenderer,
         labelRenderer,
-        composer,
+        composer: ENABLE_BLOOM ? composer : null,
         render
     };
 }
