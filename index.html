@@ -86,8 +86,15 @@
             position: relative;
             box-sizing: border-box;
             padding: 0;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background-color 0.1s;
         }
-        .key.spacebar {
+        .key:active, .key.active {
+            background: rgba(0, 255, 200, 0.3);
+        }
+        .key-spacebar {
             width: 80px;
             height: 24px;
             line-height: 24px;
@@ -264,15 +271,15 @@
         <div id="controls" class="hud-element">
             <div class="wasd-grid">
                 <div></div>
-                <div class="key key-up">W</div>
+                <div class="key key-w">W</div>
                 <div></div>
-                <div class="key key-left">A</div>
-                <div class="key key-down">S</div>
-                <div class="key key-right">D</div>
+                <div class="key key-a">A</div>
+                <div class="key key-s">S</div>
+                <div class="key key-d">D</div>
             </div>
         </div>
         <div id="space-control" class="hud-element">
-            <div class="key spacebar">SPACE</div>
+            <div class="key key-spacebar">SPACE</div>
         </div>
     </div>
     <script src="main.js" defer></script>
