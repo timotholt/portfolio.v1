@@ -2,8 +2,14 @@
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
+// Create layers for bloom effect
+const BLOOM_LAYER = 1;
+const NORMAL_LAYER = 0;
+
 // Set up the camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.layers.enable(BLOOM_LAYER);  // Enable bloom layer on camera
+camera.layers.enable(NORMAL_LAYER); // Enable normal layer on camera
 
 // Create the renderer
 const renderer = new THREE.WebGLRenderer({ 
@@ -13,11 +19,20 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('portfolio-container').appendChild(renderer.domElement);
 
+// Create CSS2D renderer for labels
+const labelRenderer = new THREE.CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+document.getElementById('portfolio-container').appendChild(labelRenderer.domElement);
+
 // Set up post-processing
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
+// Set up bloom pass for the road and rings
 const bloomPass = new THREE.UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
     2.0,    // Stronger bloom intensity
@@ -145,29 +160,12 @@ const trackMaterial = new THREE.ShaderMaterial({
 const track = new THREE.Mesh(trackGeometry, trackMaterial);
 scene.add(track);
 
-// Create text sprite
+// Create text label
 function createTextSprite(text) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 64;
-    
-    ctx.font = '32px "Orbitron"';
-    ctx.fillStyle = '#4dfff3';
-    ctx.textAlign = 'center';
-    ctx.fillText(text, 128, 40);
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ 
-        map: texture,
-        transparent: true,
-        opacity: 0.8,
-        depthTest: false,  // Always render on top
-        sizeAttenuation: true  // Scale with distance
-    });
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.renderOrder = 1;  // Render after rings
-    return sprite;
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = text;
+    return new THREE.CSS2DObject(label);
 }
 
 // Create rings array to store references
@@ -187,7 +185,8 @@ const connectorMaterial = new THREE.LineBasicMaterial({
     color: 0x4dfff3,
     transparent: true,
     opacity: 0.6,
-    depthTest: false
+    depthTest: false,
+    blending: THREE.NormalBlending  // Changed from AdditiveBlending to prevent bloom
 });
 
 // Create rings at milestone positions
@@ -210,15 +209,13 @@ milestones.forEach((milestone, index) => {
     
     // Add text label
     const label = createTextSprite(milestoneNames[index]);
-    label.userData.basePosition = point.clone();
-    label.scale.set(0.8, 0.2, 1);  // Fixed size for HUD feel
-    label.material.opacity = 0.9;   // Fixed opacity for HUD feel
+    label.position.copy(point);
     ringLabels.push(label);
     scene.add(label);
     
     // Create connector line
+    const linePositions = new Float32Array(6); // Two points, xyz each
     const connectorGeometry = new THREE.BufferGeometry();
-    const linePositions = new Float32Array(6);  // 2 points × 3 coordinates
     connectorGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
     const connector = new THREE.Line(connectorGeometry, connectorMaterial);
     connector.renderOrder = 1;  // Render after rings
@@ -229,24 +226,25 @@ milestones.forEach((milestone, index) => {
 // Update rings opacity based on track distance
 function updateRingsOpacity() {
     const wrappedProgress = ((progress % 1.0) + 1.0) % 1.0;  // Same wrapping as camera
+    
     rings.forEach((ring, index) => {
         const milestone = milestones[index];
         
         // Calculate shortest distance along track (handling wraparound)
-        let distance = Math.abs(milestone - wrappedProgress);
-        if (distance > 0.5) {
-            distance = 1 - distance;
+        let trackDistance = Math.abs(milestone - wrappedProgress);
+        if (trackDistance > 0.5) {
+            trackDistance = 1 - trackDistance;
         }
         
         // Update ring opacity and color
-        if (distance <= startFade) {
+        if (trackDistance <= startFade) {
             ring.material.opacity = maxOpacity;
-            const whiteBlend = 1 - (distance / startFade);
+            const whiteBlend = 1 - (trackDistance / startFade);
             const color = new THREE.Color(0xffd700);
             color.lerp(new THREE.Color(0xffffff), whiteBlend * 0.5);
             ring.material.color = color;
-        } else if (distance <= startFade + fadeRange) {
-            const fadeValue = Math.pow(1 - ((distance - startFade) / fadeRange), 3);
+        } else if (trackDistance <= startFade + fadeRange) {
+            const fadeValue = Math.pow(1 - ((trackDistance - startFade) / fadeRange), 3);
             ring.material.opacity = minOpacity + (maxOpacity - minOpacity) * fadeValue;
             ring.material.color.setHex(0xffd700);
         } else {
@@ -254,31 +252,41 @@ function updateRingsOpacity() {
             ring.material.color.setHex(0xffd700);
         }
         
-        // Update label and connector positions
+        // Calculate label position in screen space
+        const ringScreenPos = ring.position.clone().project(camera);
+        const offsetX = 200 / window.innerWidth * 2;  // Doubled the right offset
+        const offsetY = -120 / window.innerHeight * 2;  // Doubled the up offset
+        
+        // Calculate end position for both label and line
+        const labelPos = new THREE.Vector3(
+            ringScreenPos.x + offsetX,
+            ringScreenPos.y + offsetY,
+            ringScreenPos.z
+        ).unproject(camera);
+        
+        // Scale the position to be closer to the camera
+        const direction = labelPos.clone().sub(ring.position).normalize();
+        const lineDistance = ring.position.distanceTo(camera.position) * 0.1;
+        labelPos.copy(ring.position).add(direction.multiplyScalar(lineDistance));
+        
+        // Update label position
         const label = ringLabels[index];
-        const connector = ringConnectors[index];
-        const basePos = label.userData.basePosition;
-        
-        // Calculate offset based on camera position
-        const cameraRight = new THREE.Vector3();
-        const cameraUp = new THREE.Vector3();
-        camera.matrixWorld.extractBasis(cameraRight, cameraUp, new THREE.Vector3());
-        
-        // Position label with fixed offset (HUD-style)
-        const labelPos = basePos.clone()
-            .add(cameraRight.multiplyScalar(1.0))  // More offset to the right
-            .add(cameraUp.multiplyScalar(0.5));    // More offset up
-        
         label.position.copy(labelPos);
         
-        // Update connector line positions
+        // Update connector line
+        const connector = ringConnectors[index];
         const positions = connector.geometry.attributes.position.array;
-        positions[0] = basePos.x;  // Start at ring
-        positions[1] = basePos.y;
-        positions[2] = basePos.z;
-        positions[3] = labelPos.x;  // End at label
+        
+        // Start at ring position
+        positions[0] = ring.position.x;
+        positions[1] = ring.position.y;
+        positions[2] = ring.position.z;
+        
+        // End at label position
+        positions[3] = labelPos.x;
         positions[4] = labelPos.y;
         positions[5] = labelPos.z;
+        
         connector.geometry.attributes.position.needsUpdate = true;
     });
 }
@@ -544,6 +552,7 @@ function animate() {
     trackMaterial.uniforms.time.value += 0.03;
     
     composer.render();
+    labelRenderer.render(scene, camera);
 }
 
 // Set initial camera position and start animation
@@ -558,8 +567,13 @@ document.addEventListener('wheel', (event) => {
 
 // Handle window resize
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);  
+    
+    renderer.setSize(width, height);
+    labelRenderer.setSize(width, height);
+    composer.setSize(width, height);
 });
