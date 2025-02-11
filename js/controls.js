@@ -22,21 +22,26 @@ export function createControls(THREE, camera, curve, milestones) {
             case 'KeyA':
             case 'ArrowLeft':
                 isRotatingLeft = true;
+                document.querySelector('.key-a')?.classList.add('active');
                 break;
             case 'KeyD':
             case 'ArrowRight':
                 isRotatingRight = true;
+                document.querySelector('.key-d')?.classList.add('active');
                 break;
             case 'KeyW':
             case 'ArrowUp':
                 isMovingForward = true;
+                document.querySelector('.key-w')?.classList.add('active');
                 break;
             case 'KeyS':
             case 'ArrowDown':
                 isMovingBackward = true;
+                document.querySelector('.key-s')?.classList.add('active');
                 break;
             case 'Space':
                 handleSpacebarPress();
+                document.querySelector('.key-spacebar')?.classList.add('active');
                 break;
         }
     }
@@ -46,18 +51,25 @@ export function createControls(THREE, camera, curve, milestones) {
             case 'KeyA':
             case 'ArrowLeft':
                 isRotatingLeft = false;
+                document.querySelector('.key-a')?.classList.remove('active');
                 break;
             case 'KeyD':
             case 'ArrowRight':
                 isRotatingRight = false;
+                document.querySelector('.key-d')?.classList.remove('active');
                 break;
             case 'KeyW':
             case 'ArrowUp':
                 isMovingForward = false;
+                document.querySelector('.key-w')?.classList.remove('active');
                 break;
             case 'KeyS':
             case 'ArrowDown':
                 isMovingBackward = false;
+                document.querySelector('.key-s')?.classList.remove('active');
+                break;
+            case 'Space':
+                document.querySelector('.key-spacebar')?.classList.remove('active');
                 break;
         }
     }
@@ -128,10 +140,42 @@ export function createControls(THREE, camera, curve, milestones) {
         return wrappedProgress;
     }
 
+    // Setup click handlers for on-screen buttons
+    function setupButtonHandlers() {
+        // WASD handlers
+        const buttons = {
+            'W': { down: () => handleKeyDown({ code: 'KeyW' }), up: () => handleKeyUp({ code: 'KeyW' }) },
+            'A': { down: () => handleKeyDown({ code: 'KeyA' }), up: () => handleKeyUp({ code: 'KeyA' }) },
+            'S': { down: () => handleKeyDown({ code: 'KeyS' }), up: () => handleKeyUp({ code: 'KeyS' }) },
+            'D': { down: () => handleKeyDown({ code: 'KeyD' }), up: () => handleKeyUp({ code: 'KeyD' }) }
+        };
+
+        // Set up WASD buttons
+        document.querySelectorAll('.key:not(.key-spacebar)').forEach(button => {
+            const key = button.textContent;
+            if (buttons[key]) {
+                button.addEventListener('mousedown', buttons[key].down);
+                button.addEventListener('mouseup', buttons[key].up);
+                button.addEventListener('mouseleave', buttons[key].up);
+            }
+        });
+
+        // Set up spacebar button
+        const spaceButton = document.querySelector('.key-spacebar');
+        if (spaceButton) {
+            spaceButton.addEventListener('mousedown', () => handleKeyDown({ code: 'Space' }));
+            spaceButton.addEventListener('mouseup', () => handleKeyUp({ code: 'Space' }));
+            spaceButton.addEventListener('mouseleave', () => handleKeyUp({ code: 'Space' }));
+        }
+    }
+
     // Set up event listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('wheel', handleMouseWheel);
+
+    // Initialize button handlers
+    setupButtonHandlers();
 
     return {
         handleKeyState,
