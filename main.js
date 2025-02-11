@@ -300,9 +300,24 @@ function updateRingsOpacity() {
         const offsetX = rightVector.x * rightOffset + upVector.x * upOffset;
         const offsetY = rightVector.y * rightOffset + upVector.y * upOffset;
         
-        // Calculate screen position and clamp to viewport
-        const screenX = Math.max(-0.95, Math.min(0.95, screenCenter.x + offsetX));
-        const screenY = Math.max(-0.95, Math.min(0.95, screenCenter.y + offsetY));
+        // Get label dimensions in screen space
+        const currentLabel = ringLabels[index];
+        const labelRect = currentLabel.element.getBoundingClientRect();
+        const labelWidth = (labelRect.width / window.innerWidth) * 2;
+        const labelHeight = (labelRect.height / window.innerHeight) * 2;
+        
+        // Calculate screen position and clamp to viewport (accounting for label size)
+        const margin = 0.05; // 5% margin from edges
+        const screenX = Math.max(
+            -1 + labelWidth/2 + margin, 
+            Math.min(1 - labelWidth/2 - margin, 
+            screenCenter.x + offsetX)
+        );
+        const screenY = Math.max(
+            -1 + labelHeight/2 + margin, 
+            Math.min(1 - labelHeight/2 - margin, 
+            screenCenter.y + offsetY)
+        );
         
         // Calculate label position from clamped screen coordinates
         const labelPos = new THREE.Vector3(
