@@ -4,75 +4,9 @@ if (typeof THREE === 'undefined') {
     throw new Error('Three.js not loaded');
 }
 
-// Wait for modules to be loaded
-if (typeof THREE.CSS2DRenderer === 'undefined' || typeof THREE.CSS3DRenderer === 'undefined') {
-    console.error('Required modules not loaded! Please check your script tags.');
-    throw new Error('Required modules not loaded');
-}
-
-// Create the scene
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
-
-// Create layers for bloom effect
-const BLOOM_LAYER = 1;
-const NORMAL_LAYER = 0;
-
-// Set up the camera
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-camera.layers.enable(BLOOM_LAYER);  // Enable bloom layer on camera
-camera.layers.enable(NORMAL_LAYER); // Enable normal layer on camera
-
-// Create the renderer
-const renderer = new THREE.WebGLRenderer({ 
-    antialias: true,
-    powerPreference: "high-performance"
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.getElementById('portfolio-container').appendChild(renderer.domElement);
-
-// Create CSS2D renderer for labels
-const labelRenderer = new THREE.CSS2DRenderer();
-labelRenderer.setSize(window.innerWidth, window.innerHeight);
-labelRenderer.domElement.style.position = 'absolute';
-labelRenderer.domElement.style.top = '0';
-labelRenderer.domElement.style.pointerEvents = 'none';
-document.getElementById('portfolio-container').appendChild(labelRenderer.domElement);
-
-// Create CSS3D renderer for HUD
-const css3dRenderer = new THREE.CSS3DRenderer();
-css3dRenderer.setSize(window.innerWidth, window.innerHeight);
-css3dRenderer.domElement.style.position = 'absolute';
-css3dRenderer.domElement.style.top = '0';
-css3dRenderer.domElement.style.pointerEvents = 'none';
-document.getElementById('portfolio-container').appendChild(css3dRenderer.domElement);
-
-// Set up post-processing
-const composer = new THREE.EffectComposer(renderer);
-const renderPass = new THREE.RenderPass(scene, camera);
-composer.addPass(renderPass);
-
-// Set up bloom pass for the road and rings
-const bloomPass = new THREE.UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    2.0,    // Stronger bloom intensity
-    0.5,    // Moderate radius
-    0.1     // Lower threshold for more glow
-);
-composer.addPass(bloomPass);
-
-// Add lights
-const ambientLight = new THREE.AmbientLight(0x111111, 0.2); // Dimmer ambient
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-directionalLight.position.set(1, 1, 1);
-scene.add(directionalLight);
-
-// Add subtle blue point light for atmosphere
-const pointLight = new THREE.PointLight(0x4444ff, 1.0, 100);
-pointLight.position.set(0, 5, 0);
-scene.add(pointLight);
+// Import and create scene
+import { createScene } from './js/scene.js';
+const { scene, camera, renderer, css3dRenderer, composer, render } = createScene(THREE);
 
 // Import and create webpage
 import { createWebPage } from './js/webpage.js';
@@ -298,6 +232,7 @@ setupTouchControls();
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);
+    
     handleKeyState();  // Handle key states every frame
     updateParticles();
     updateCamera();
@@ -305,13 +240,10 @@ function animate() {
     // Update shader time
     trackMaterial.uniforms.time.value += 0.03;
     
-    composer.render();
-    css3dRenderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
+    // Render the scene
+    render();
 }
 
-// Set initial camera position and start animation
-updateCamera();
 animate();
 
 // Handle mouse wheel
@@ -329,9 +261,7 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     
     renderer.setSize(width, height);
-    labelRenderer.setSize(width, height);
     css3dRenderer.setSize(width, height);
-    composer.setSize(width, height);
 });
 
 function handleSpacebarPress() {
