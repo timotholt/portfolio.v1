@@ -552,12 +552,13 @@ function updateCamera() {
     const arrows = document.querySelectorAll('.arrow');
     
     if (milestoneElement && milestoneNameElement && arrows.length > 0) {
-        // Find next milestone
-        const nextMilestoneIndex = milestones.findIndex(m => m.position > wrappedProgress) || 0;
-        let distance = Math.abs(milestones[nextMilestoneIndex].position - wrappedProgress);
+        // Find next milestone with safety check
+        const nextMilestoneIndex = milestones.findIndex(m => m.position > wrappedProgress);
+        const safeIndex = nextMilestoneIndex === -1 ? 0 : nextMilestoneIndex;
+        let distance = Math.abs(milestones[safeIndex].position - wrappedProgress);
         if (distance > 0.5) distance = 1 - distance;  // Use same wraparound logic as rings
         milestoneElement.textContent = (distance * 100).toFixed(2);
-        milestoneNameElement.textContent = milestones[nextMilestoneIndex].name;
+        milestoneNameElement.textContent = milestones[safeIndex].name;
 
         // Update arrows
         const currentPosition = Math.floor(wrappedProgress * 20);
