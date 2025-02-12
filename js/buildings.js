@@ -3,49 +3,93 @@
 const sharedGeometries = new Map();
 const sharedMaterials = new Map();
 
-// Create shared window geometry with vertex colors if it doesn't exist
+// Create shared window geometry with insets
 let sharedWindowGeometry = null;
 
 export function createBuilding(THREE) {
     // Initialize shared window geometry if not already done
     if (!sharedWindowGeometry) {
-        const geometry = new THREE.BufferGeometry();
-        
-        // Vertices for a simple plane (2 triangles)
-        const vertices = new Float32Array([
-            -0.5, -0.5, 0,  // bottom left
-            0.5, -0.5, 0,   // bottom right
-            0.5, 0.5, 0,    // top right
-            -0.5, -0.5, 0,  // bottom left
-            0.5, 0.5, 0,    // top right
-            -0.5, 0.5, 0    // top left
-        ]);
-        
-        // UVs
-        const uvs = new Float32Array([
-            0, 0,
-            1, 0,
-            1, 1,
-            0, 0,
-            1, 1,
-            0, 1
-        ]);
-        
-        // Vertex colors (will be modified per instance)
-        const colors = new Float32Array([
-            1, 1, 1,  // bottom left
-            1, 1, 1,  // bottom right
-            1, 1, 1,  // top right
-            1, 1, 1,  // bottom left
-            1, 1, 1,  // top right
-            1, 1, 1   // top left
-        ]);
-        
-        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-        geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        
-        sharedWindowGeometry = geometry;
+        function createWindowGeometry(isModern) {
+            const geometry = new THREE.BufferGeometry();
+            const insetDepth = isModern ? 0.2 : 0.5;  // Modern windows less inset
+            const sillDepth = isModern ? 0 : 0.2;     // Only old buildings have sills
+            
+            // Vertices for inset window (counter-clockwise order)
+            const vertices = [
+                // Main window (recessed)
+                -0.45, -0.45, -insetDepth,  // bottom left
+                0.45, -0.45, -insetDepth,   // bottom right
+                0.45, 0.45, -insetDepth,    // top right
+                -0.45, -0.45, -insetDepth,  // bottom left
+                0.45, 0.45, -insetDepth,    // top right
+                -0.45, 0.45, -insetDepth,   // top left
+
+                // Left side
+                -0.5, -0.5, 0,
+                -0.45, -0.45, -insetDepth,
+                -0.45, 0.45, -insetDepth,
+                -0.5, -0.5, 0,
+                -0.45, 0.45, -insetDepth,
+                -0.5, 0.5, 0,
+
+                // Right side
+                0.45, -0.45, -insetDepth,
+                0.5, -0.5, 0,
+                0.5, 0.5, 0,
+                0.45, -0.45, -insetDepth,
+                0.5, 0.5, 0,
+                0.45, 0.45, -insetDepth,
+
+                // Top
+                -0.5, 0.5, 0,
+                0.5, 0.5, 0,
+                0.45, 0.45, -insetDepth,
+                -0.5, 0.5, 0,
+                0.45, 0.45, -insetDepth,
+                -0.45, 0.45, -insetDepth,
+
+                // Bottom (with optional sill)
+                -0.5, -0.5, 0,
+                0.45, -0.45, -insetDepth,
+                -0.45, -0.45, -insetDepth,
+                -0.5, -0.5, 0,
+                0.5, -0.5, 0,
+                0.45, -0.45, -insetDepth
+            ];
+
+            // Add sill for old buildings
+            if (!isModern) {
+                vertices.push(
+                    // Sill (protruding part)
+                    -0.6, -0.5, 0,      // Extended sill
+                    0.6, -0.5, 0,
+                    0.6, -0.5, -0.1,
+                    -0.6, -0.5, 0,
+                    0.6, -0.5, -0.1,
+                    -0.6, -0.5, -0.1
+                );
+            }
+
+            // Add vertex colors (all vertices same color)
+            const numVertices = vertices.length / 3;
+            const colors = new Float32Array(numVertices * 3);
+            for (let i = 0; i < numVertices; i++) {
+                colors[i * 3] = 1;     // R
+                colors[i * 3 + 1] = 1; // G
+                colors[i * 3 + 2] = 1; // B
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.computeVertexNormals(); // Important for lighting
+
+            return geometry;
+        }
+
+        // Create two versions of the window
+        const modernGeometry = createWindowGeometry(true);
+        const oldGeometry = createWindowGeometry(false);
+        sharedWindowGeometry = { modern: modernGeometry, old: oldGeometry };
     }
 
     // Generate building parameters
@@ -77,65 +121,13 @@ export function createBuilding(THREE) {
     // Determine building type based on physical characteristics
     const isModernBuilding = gutterSize < 0.3 && padding < 0.5;
     
-    // Create window materials for different light levels
-    const materialLevels = [
-        new THREE.MeshPhongMaterial({  // dim
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 0.1,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        new THREE.MeshPhongMaterial({  // low
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 0.3,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        new THREE.MeshPhongMaterial({  // medium
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 0.8,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        new THREE.MeshPhongMaterial({  // bright
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 1.2,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        })
-    ];
-
     // Building policy
     const buildingPolicy = {
         baseLevel: isModernBuilding ? 1 : 2,  // Modern buildings dimmer
         conformity: isModernBuilding ? 0.95 : 0.7
     };
 
-    console.log(`Building Details:
-    Modern: ${isModernBuilding}
-    Policy: Level ${buildingPolicy.baseLevel} (${buildingPolicy.conformity * 100}% conformity)
-    Height: ${buildingHeight}
-    Width Side A: ${buildingWidthSideA}
-    Width Side B: ${buildingWidthSideB}
-    Rooms Side A: ${roomsPerSideA}
-    Rooms Side B: ${roomsPerSideB}
-    Window Size: ${windowWidth.toFixed(2)} x ${windowHeight.toFixed(2)}
-    Gutter Size: ${gutterSize.toFixed(2)}
-    Padding: ${padding.toFixed(2)}`);
-
-    // Create building group
+    // Create building group and main mesh first
     const building = new THREE.Group();
 
     // Create building mesh
@@ -150,22 +142,24 @@ export function createBuilding(THREE) {
     building.add(buildingMesh);
 
     // Create window material that uses vertex colors
+    const windowGeometry = isModernBuilding ? sharedWindowGeometry.modern : sharedWindowGeometry.old;
     const windowMaterial = new THREE.MeshBasicMaterial({
         color: 0x00ffcc,
+        vertexColors: true,
+        side: THREE.DoubleSide,
         transparent: true,
         opacity: 1.0,
-        vertexColors: true,
-        side: THREE.DoubleSide
+        depthWrite: false  // Try disabling depth write
     });
 
     const windowsSideA = new THREE.InstancedMesh(
-        sharedWindowGeometry,
+        windowGeometry,
         windowMaterial,
         roomsPerSideA * numFloors * 2  // *2 for front and back
     );
 
     const windowsSideB = new THREE.InstancedMesh(
-        sharedWindowGeometry,
+        windowGeometry,
         windowMaterial.clone(),
         roomsPerSideB * numFloors * 2  // *2 for left and right
     );
@@ -202,7 +196,7 @@ export function createBuilding(THREE) {
             if (Math.random() < 0.1) brightness = 0;
             
             // Set color with cyan tint
-            color.setRGB(0, brightness, brightness);
+            color.setRGB(brightness, brightness, brightness);  
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideA.setMatrixAt(instanceIndex, matrix);
@@ -212,14 +206,14 @@ export function createBuilding(THREE) {
     }
     
     // Back face (Z-)
-    quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));
-    
+    quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));  // Rotate 180 degrees for back face
+
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
         
         for (let room = 0; room < roomsPerSideA; room++) {
             const x = -buildingWidthSideA/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const z = -buildingWidthSideB/2 - 0.1;
+            const z = -buildingWidthSideB/2 + 0.1;  // Changed from -0.1 to +0.1
             
             // Window brightness based on building policy
             if (Math.random() > buildingPolicy.conformity) {
@@ -233,7 +227,7 @@ export function createBuilding(THREE) {
             if (Math.random() < 0.1) brightness = 0;
             
             // Set color with cyan tint
-            color.setRGB(0, brightness, brightness);
+            color.setRGB(brightness, brightness, brightness);  
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideA.setMatrixAt(instanceIndex, matrix);
@@ -241,19 +235,19 @@ export function createBuilding(THREE) {
             instanceIndex++;
         }
     }
-
-    // Create windows for left and right (side B)
+    
+    // Reset instance counter for side B
     instanceIndex = 0;
     
     // Right face (X+)
-    quaternion.setFromEuler(new THREE.Euler(0, Math.PI/2, 0));
-    
+    quaternion.setFromEuler(new THREE.Euler(0, Math.PI/2, 0));  // 90 degrees for right face
+
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
         
         for (let room = 0; room < roomsPerSideB; room++) {
-            const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
             const x = buildingWidthSideA/2 + 0.1;
+            const z = buildingWidthSideB/2 - padding - room * (windowWidth + gutterSize) - windowWidth/2;  // Reverse Z order
             
             // Window brightness based on building policy
             if (Math.random() > buildingPolicy.conformity) {
@@ -267,7 +261,7 @@ export function createBuilding(THREE) {
             if (Math.random() < 0.1) brightness = 0;
             
             // Set color with cyan tint
-            color.setRGB(0, brightness, brightness);
+            color.setRGB(brightness, brightness, brightness);  
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideB.setMatrixAt(instanceIndex, matrix);
@@ -277,14 +271,14 @@ export function createBuilding(THREE) {
     }
     
     // Left face (X-)
-    quaternion.setFromEuler(new THREE.Euler(0, -Math.PI/2, 0));
-    
+    quaternion.setFromEuler(new THREE.Euler(0, -Math.PI/2, 0));  // -90 degrees for left face
+
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
         
         for (let room = 0; room < roomsPerSideB; room++) {
-            const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
             const x = -buildingWidthSideA/2 - 0.1;
+            const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
             
             // Window brightness based on building policy
             if (Math.random() > buildingPolicy.conformity) {
@@ -298,7 +292,7 @@ export function createBuilding(THREE) {
             if (Math.random() < 0.1) brightness = 0;
             
             // Set color with cyan tint
-            color.setRGB(0, brightness, brightness);
+            color.setRGB(brightness, brightness, brightness);  
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideB.setMatrixAt(instanceIndex, matrix);
@@ -320,6 +314,18 @@ export function createBuilding(THREE) {
     const roof = new THREE.Mesh(roofGeometry, roofMaterial);
     roof.position.y = buildingHeight/2;
     building.add(roof);
+
+    console.log(`Building Details:
+    Modern: ${isModernBuilding}
+    Policy: Level ${buildingPolicy.baseLevel} (${buildingPolicy.conformity * 100}% conformity)
+    Height: ${buildingHeight}
+    Width Side A: ${buildingWidthSideA}
+    Width Side B: ${buildingWidthSideB}
+    Rooms Side A: ${roomsPerSideA}
+    Rooms Side B: ${roomsPerSideB}
+    Window Size: ${windowWidth.toFixed(2)} x ${windowHeight.toFixed(2)}
+    Gutter Size: ${gutterSize.toFixed(2)}
+    Padding: ${padding.toFixed(2)}`);
 
     return building;
 }

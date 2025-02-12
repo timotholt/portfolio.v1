@@ -54,19 +54,17 @@ export function createScene(THREE) {
 
     // Create a grid of buildings
     const buildingGrid = [];
-    const gridSize = 3;  // Reduced from 5
-    const spacing = 80;  // Increased spacing
+    const gridSize = 6;  // 13x13 grid instead of 7x7 (almost 3x more buildings)
+    const spacing = 80;
     
     for(let x = -gridSize; x <= gridSize; x++) {
         for(let z = -gridSize; z <= gridSize; z++) {
-            // Skip more positions randomly to create gaps
-            if(Math.random() < 0.4) continue;  // Increased skip chance
-            
+            // No skipping to get exact number of buildings
             const building = createBuilding(THREE);
             
             building.position.set(
                 x * spacing + (Math.random() - 0.5) * 20,
-                building.children[0].geometry.parameters.height / 2,  // Position at half building height
+                building.children[0].geometry.parameters.height / 2,
                 z * spacing + (Math.random() - 0.5) * 20
             );
             
