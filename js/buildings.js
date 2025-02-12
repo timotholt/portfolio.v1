@@ -68,25 +68,62 @@ export function createBuilding(THREE) {
     // Window generation
     const windowGeometry = new THREE.PlaneGeometry(windowWidth, windowHeight, 2, 2);
     
-    // Create two materials - one for lit windows, one for dark
-    const darkWindowMaterial = new THREE.MeshPhongMaterial({
-        color: 0x000000,
-        emissive: 0x000000,
-        transparent: true,
-        opacity: 0.6,
-        depthWrite: false,
-        side: THREE.DoubleSide
-    });
-
-    const litWindowMaterial = new THREE.MeshPhongMaterial({
-        color: 0x00ffcc,
-        emissive: 0x00ffcc,
-        emissiveIntensity: 1,
-        transparent: true,
-        opacity: 0.6,
-        depthWrite: false,
-        side: THREE.DoubleSide
-    });
+    // Create material pool for this building
+    const windowMaterials = {
+        dark: new THREE.MeshPhongMaterial({
+            color: 0x000000,
+            emissive: 0x000000,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        dim: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 0.2,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        low: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        medium: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 1.0,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        bright: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 1.5,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        veryBright: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 2.0,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        })
+    };
 
     // Sides to add windows
     const sides = [
@@ -152,38 +189,41 @@ export function createBuilding(THREE) {
                     floor * (windowHeight + gutterSize) + 
                     windowHeight/2;
 
-                // Consistent hue with variable intensity
-                const baseColor = new THREE.Color(0x00ffcc);
-                const windowIntensity = (() => {
-                    const rand = Math.random();
-                    switch (true) {
-                        case rand < 0.05:  // 5% completely dark
-                            return 0;
-                        case rand < 0.2:  // 15% extremely dim (almost imperceptible)
-                            return Math.pow(Math.random(), 10) * 0.02;
-                        case rand < 0.4:  // 20% very low intensity
-                            return Math.pow(Math.random(), 7) * 0.1;
-                        case rand < 0.6:  // 20% moderate intensity with high variance
-                            return Math.random() * 0.6;
-                        case rand < 0.8:  // 20% bright with exponential distribution
-                            return Math.pow(Math.random(), 2) * 1.2;
-                        case rand < 0.95:  // 15% very bright
-                            return 1.5 + Math.random();
-                        default:  // 5% extremely bright/glowing
-                            return 2 + Math.random() * 2;
+                // Determine building type based on physical characteristics
+                const isModernBuilding = gutterSize < 0.3 && padding < 0.5;
+                
+                // Calculate window intensity based on building type
+                let material;
+                if (isModernBuilding) {
+                    // Modern office buildings: 90% consistent lighting
+                    const buildingPolicy = Math.random() < 0.5;  // 50% chance lights are mostly on/off
+                    const isStandardWindow = Math.random() < 0.9;  // 90% follow building policy
+                    
+                    if (isStandardWindow) {
+                        // Follow building policy
+                        material = buildingPolicy ? windowMaterials.medium : windowMaterials.dark;
+                    } else {
+                        // 10% random variation
+                        const rand = Math.random();
+                        material = rand < 0.2 ? windowMaterials.dark :
+                                 rand < 0.4 ? windowMaterials.dim :
+                                 rand < 0.6 ? windowMaterials.low :
+                                 rand < 0.8 ? windowMaterials.medium :
+                                 rand < 0.9 ? windowMaterials.bright :
+                                            windowMaterials.veryBright;
                     }
-                })();
-
-                // Create window mesh with appropriate material
-                const isLit = windowIntensity >= 0.1;
-                const windowMesh = new THREE.Mesh(
-                    windowGeometry,
-                    isLit ? litWindowMaterial.clone() : darkWindowMaterial.clone()
-                );
-                if (isLit) {
-                    windowMesh.material.emissiveIntensity = windowIntensity;
+                } else {
+                    // Older buildings: More random distribution
+                    const rand = Math.random();
+                    material = rand < 0.05 ? windowMaterials.dark :      // 5% dark
+                             rand < 0.2 ? windowMaterials.dim :          // 15% dim
+                             rand < 0.4 ? windowMaterials.low :          // 20% low
+                             rand < 0.6 ? windowMaterials.medium :       // 20% medium
+                             rand < 0.8 ? windowMaterials.bright :       // 20% bright
+                                        windowMaterials.veryBright;      // 20% very bright
                 }
 
+                const windowMesh = new THREE.Mesh(windowGeometry, material);
                 windowMesh.position.set(xPos, yPos, 0.01);
                 windowMesh.updateMatrix();
                 
