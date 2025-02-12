@@ -41,13 +41,97 @@ export function createBuilding(THREE) {
         (gutterSize * (roomsSideB - 1)) + 
         padding;
 
+    // Determine building type based on physical characteristics
+    const isModernBuilding = gutterSize < 0.3 && padding < 0.5;
+    
+    // Window generation
+    const windowGeometry = new THREE.PlaneGeometry(windowWidth, windowHeight, 2, 2);
+    
+    // Create window materials
+    const windowMaterials = {
+        dark: new THREE.MeshPhongMaterial({
+            color: 0x000000,
+            emissive: 0x000000,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        dim: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 0.1,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        low: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        medium: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 0.8,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        bright: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 1.2,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        }),
+        veryBright: new THREE.MeshPhongMaterial({
+            color: 0x00ffcc,
+            emissive: 0x00ffcc,
+            emissiveIntensity: 2.0,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        })
+    };
+
+    // Create materials in order of brightness for easy level shifts
+    const materialLevels = [
+        windowMaterials.dim,      // 0: Dimmest
+        windowMaterials.low,      // 1
+        windowMaterials.medium,   // 2
+        windowMaterials.bright,   // 3
+        windowMaterials.veryBright// 4: Brightest
+    ];
+
+    // For all buildings, decide building-wide lighting policy
+    const buildingPolicy = {
+        baseLevel: isModernBuilding 
+            ? (Math.random() < 0.5 ? 2 : 1)  // Modern: medium (2) or low (1)
+            : (Math.random() < 0.5 ? 3 : 2), // Older: bright (3) or medium (2)
+        conformity: isModernBuilding ? 0.95 : 0.7  // Modern: 95% conform, Older: 70% conform
+    };
+
     console.log(`Building Details:
+    Modern: ${isModernBuilding}
+    Policy: Level ${buildingPolicy.baseLevel} (${buildingPolicy.conformity * 100}% conformity)
     Height: ${buildingHeight}
     Width Side A: ${buildingWidthSideA}
     Width Side B: ${buildingWidthSideB}
-    Floors: ${numFloors}
-    Window Height: ${windowHeight}
-    Gutter Size: ${gutterSize}`);
+    Rooms Side A: ${roomsSideA}
+    Rooms Side B: ${roomsSideB}
+    Window Size: ${windowWidth.toFixed(2)} x ${windowHeight.toFixed(2)}
+    Gutter Size: ${gutterSize.toFixed(2)}
+    Padding: ${padding.toFixed(2)}`);
 
     // Create building group
     const building = new THREE.Group();
@@ -64,66 +148,6 @@ export function createBuilding(THREE) {
 
     const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
     building.add(buildingMesh);
-
-    // Window generation
-    const windowGeometry = new THREE.PlaneGeometry(windowWidth, windowHeight, 2, 2);
-    
-    // Create material pool for this building
-    const windowMaterials = {
-        dark: new THREE.MeshPhongMaterial({
-            color: 0x000000,
-            emissive: 0x000000,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        dim: new THREE.MeshPhongMaterial({
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 0.2,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        low: new THREE.MeshPhongMaterial({
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 0.5,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        medium: new THREE.MeshPhongMaterial({
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 1.0,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        bright: new THREE.MeshPhongMaterial({
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 1.5,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        }),
-        veryBright: new THREE.MeshPhongMaterial({
-            color: 0x00ffcc,
-            emissive: 0x00ffcc,
-            emissiveIntensity: 2.0,
-            transparent: true,
-            opacity: 0.6,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        })
-    };
 
     // Sides to add windows
     const sides = [
@@ -189,38 +213,34 @@ export function createBuilding(THREE) {
                     floor * (windowHeight + gutterSize) + 
                     windowHeight/2;
 
-                // Determine building type based on physical characteristics
-                const isModernBuilding = gutterSize < 0.3 && padding < 0.5;
-                
                 // Calculate window intensity based on building type
                 let material;
                 if (isModernBuilding) {
                     // Modern office buildings: 90% consistent lighting
-                    const buildingPolicy = Math.random() < 0.5;  // 50% chance lights are mostly on/off
-                    const isStandardWindow = Math.random() < 0.9;  // 90% follow building policy
+                    const isStandardWindow = Math.random() < buildingPolicy.conformity;  // 95% follow building policy
                     
                     if (isStandardWindow) {
                         // Follow building policy
-                        material = buildingPolicy ? windowMaterials.medium : windowMaterials.dark;
+                        material = materialLevels[buildingPolicy.baseLevel];
                     } else {
-                        // 10% random variation
-                        const rand = Math.random();
-                        material = rand < 0.2 ? windowMaterials.dark :
-                                 rand < 0.4 ? windowMaterials.dim :
-                                 rand < 0.6 ? windowMaterials.low :
-                                 rand < 0.8 ? windowMaterials.medium :
-                                 rand < 0.9 ? windowMaterials.bright :
-                                            windowMaterials.veryBright;
+                        // 10% random variation - go 1-2 levels down from base
+                        const variation = Math.floor(Math.random() * 2);  // 1 or 2 levels
+                        const newLevel = Math.max(0, buildingPolicy.baseLevel - variation);
+                        material = materialLevels[newLevel];
                     }
                 } else {
                     // Older buildings: More random distribution
-                    const rand = Math.random();
-                    material = rand < 0.05 ? windowMaterials.dark :      // 5% dark
-                             rand < 0.2 ? windowMaterials.dim :          // 15% dim
-                             rand < 0.4 ? windowMaterials.low :          // 20% low
-                             rand < 0.6 ? windowMaterials.medium :       // 20% medium
-                             rand < 0.8 ? windowMaterials.bright :       // 20% bright
-                                        windowMaterials.veryBright;      // 20% very bright
+                    const isStandardWindow = Math.random() < buildingPolicy.conformity;  // 70% follow building policy
+                    
+                    if (isStandardWindow) {
+                        // Follow building policy
+                        material = materialLevels[buildingPolicy.baseLevel];
+                    } else {
+                        // 30% random variation - go 1-2 levels down from base
+                        const variation = Math.floor(Math.random() * 3);  // 1 or 2 levels
+                        const newLevel = Math.max(0, buildingPolicy.baseLevel - variation);
+                        material = materialLevels[newLevel];
+                    }
                 }
 
                 const windowMesh = new THREE.Mesh(windowGeometry, material);
@@ -238,7 +258,7 @@ export function createBuilding(THREE) {
     const roofMaterial = new THREE.MeshPhongMaterial({
         color: 0x00ffcc,
         emissive: 0x00ffcc,
-        emissiveIntensity: 2  // Extra bright for that cyberpunk glow
+        emissiveIntensity: isModernBuilding ? 2 : 0 // Extra bright for that cyberpunk glow
     });
     const roof = new THREE.Mesh(roofGeometry, roofMaterial);
     roof.position.y = buildingHeight/2 + 1;  // Slightly above building top
