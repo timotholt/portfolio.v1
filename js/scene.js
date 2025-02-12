@@ -1,5 +1,6 @@
 // Scene setup and management
 import { createBuilding } from './buildings.js';
+import { createCityGrid } from './cityblocks.js';
 
 export function createScene(THREE) {
     // Create scene and camera
@@ -52,27 +53,9 @@ export function createScene(THREE) {
         scene.add(pointLight);
     });
 
-    // Create a grid of buildings
-    const buildingGrid = [];
-    const gridSize = 6;  // 13x13 grid instead of 7x7 (almost 3x more buildings)
-    const spacing = 80;
-    
-    for(let x = -gridSize; x <= gridSize; x++) {
-        for(let z = -gridSize; z <= gridSize; z++) {
-            // No skipping to get exact number of buildings
-            const building = createBuilding(THREE);
-            
-            building.position.set(
-                x * spacing + (Math.random() - 0.5) * 20,
-                building.children[0].geometry.parameters.height / 2,
-                z * spacing + (Math.random() - 0.5) * 20
-            );
-            
-            building.rotation.y = Math.random() * Math.PI * 2;
-            scene.add(building);
-            buildingGrid.push(building);
-        }
-    }
+    // Create a city grid
+    const cityGrid = createCityGrid(THREE);
+    scene.add(cityGrid);
 
     // Add a global flag to control bloom
     const ENABLE_BLOOM = false;  // Set to true to enable bloom
