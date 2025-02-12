@@ -66,15 +66,26 @@ export function createBuilding(THREE) {
     building.add(buildingMesh);
 
     // Window generation
-    const windowGeometry = new THREE.PlaneGeometry(windowWidth, windowHeight);
-    const windowMaterial = new THREE.MeshPhongMaterial({
-        color: 0x00ffcc,
-        emissive: 0x00ffcc,
+    const windowGeometry = new THREE.PlaneGeometry(windowWidth, windowHeight, 2, 2);
+    
+    // Create two materials - one for lit windows, one for dark
+    const darkWindowMaterial = new THREE.MeshPhongMaterial({
+        color: 0x000000,
+        emissive: 0x000000,
         transparent: true,
         opacity: 0.6,
-        polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1
+        depthWrite: false,
+        side: THREE.DoubleSide
+    });
+
+    const litWindowMaterial = new THREE.MeshPhongMaterial({
+        color: 0x00ffcc,
+        emissive: 0x00ffcc,
+        emissiveIntensity: 1,
+        transparent: true,
+        opacity: 0.6,
+        depthWrite: false,
+        side: THREE.DoubleSide
     });
 
     // Sides to add windows
@@ -119,17 +130,11 @@ export function createBuilding(THREE) {
     }
 
     windowSides.forEach(side => {
-        const windowInstances = new THREE.InstancedMesh(
-            windowGeometry, 
-            windowMaterial, 
-            Math.max(1, numFloors * side.roomCount)
-        );
-        windowInstances.rotation.set(...side.rotation);
-        windowInstances.position.set(...side.offset);
+        const sideGroup = new THREE.Group();
+        sideGroup.rotation.set(...side.rotation);
+        sideGroup.position.set(...side.offset);
+        building.add(sideGroup);
 
-        const dummy = new THREE.Object3D();
-        let instanceCount = 0;
-        
         // Calculate total width of windows and gutters
         const totalWindowsWidth = side.roomCount * windowWidth;
         const totalGuttersWidth = (side.roomCount - 1) * gutterSize;
@@ -147,29 +152,44 @@ export function createBuilding(THREE) {
                     floor * (windowHeight + gutterSize) + 
                     windowHeight/2;
 
-                // New intensity calculation for more contrast
-                const windowIntensity = Math.random() < 0.5 
-                    ? Math.pow(Math.random(), 5) * 0.3  // Darker windows
-                    : Math.pow(Math.random(), 2) * 0.8; // Brighter windows
+                // Consistent hue with variable intensity
+                const baseColor = new THREE.Color(0x00ffcc);
+                const windowIntensity = (() => {
+                    const rand = Math.random();
+                    switch (true) {
+                        case rand < 0.05:  // 5% completely dark
+                            return 0;
+                        case rand < 0.2:  // 15% extremely dim (almost imperceptible)
+                            return Math.pow(Math.random(), 10) * 0.02;
+                        case rand < 0.4:  // 20% very low intensity
+                            return Math.pow(Math.random(), 7) * 0.1;
+                        case rand < 0.6:  // 20% moderate intensity with high variance
+                            return Math.random() * 0.6;
+                        case rand < 0.8:  // 20% bright with exponential distribution
+                            return Math.pow(Math.random(), 2) * 1.2;
+                        case rand < 0.95:  // 15% very bright
+                            return 1.5 + Math.random();
+                        default:  // 5% extremely bright/glowing
+                            return 2 + Math.random() * 2;
+                    }
+                })();
 
-                dummy.position.set(xPos, yPos, 0);
-                dummy.updateMatrix();
-
-                windowInstances.setMatrixAt(instanceCount, dummy.matrix);
-                windowInstances.setColorAt(instanceCount, 
-                    new THREE.Color(0x00ffcc).multiplyScalar(windowIntensity)
+                // Create window mesh with appropriate material
+                const isLit = windowIntensity >= 0.1;
+                const windowMesh = new THREE.Mesh(
+                    windowGeometry,
+                    isLit ? litWindowMaterial.clone() : darkWindowMaterial.clone()
                 );
+                if (isLit) {
+                    windowMesh.material.emissiveIntensity = windowIntensity;
+                }
 
-                instanceCount++;
+                windowMesh.position.set(xPos, yPos, 0.01);
+                windowMesh.updateMatrix();
+                
+                // Add to side group
+                sideGroup.add(windowMesh);
             }
-        }
-
-        windowInstances.instanceMatrix.needsUpdate = true;
-        windowInstances.instanceColor.needsUpdate = true;
-        
-        if (instanceCount > 0) {
-            windowInstances.count = instanceCount;
-            building.add(windowInstances);
         }
     });
 
