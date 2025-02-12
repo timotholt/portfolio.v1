@@ -3,13 +3,49 @@
 const sharedGeometries = new Map();
 const sharedMaterials = new Map();
 
-// Create shared window geometry
+// Create shared window geometry with vertex colors if it doesn't exist
 let sharedWindowGeometry = null;
 
 export function createBuilding(THREE) {
     // Initialize shared window geometry if not already done
     if (!sharedWindowGeometry) {
-        sharedWindowGeometry = new THREE.PlaneGeometry(1, 1);
+        const geometry = new THREE.BufferGeometry();
+        
+        // Vertices for a simple plane (2 triangles)
+        const vertices = new Float32Array([
+            -0.5, -0.5, 0,  // bottom left
+            0.5, -0.5, 0,   // bottom right
+            0.5, 0.5, 0,    // top right
+            -0.5, -0.5, 0,  // bottom left
+            0.5, 0.5, 0,    // top right
+            -0.5, 0.5, 0    // top left
+        ]);
+        
+        // UVs
+        const uvs = new Float32Array([
+            0, 0,
+            1, 0,
+            1, 1,
+            0, 0,
+            1, 1,
+            0, 1
+        ]);
+        
+        // Vertex colors (will be modified per instance)
+        const colors = new Float32Array([
+            1, 1, 1,  // bottom left
+            1, 1, 1,  // bottom right
+            1, 1, 1,  // top right
+            1, 1, 1,  // bottom left
+            1, 1, 1,  // top right
+            1, 1, 1   // top left
+        ]);
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        sharedWindowGeometry = geometry;
     }
 
     // Generate building parameters
@@ -113,11 +149,15 @@ export function createBuilding(THREE) {
     const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
     building.add(buildingMesh);
 
-    // Create instanced meshes for front/back (A) and left/right (B) sides
-    const windowMaterial = materialLevels[buildingPolicy.baseLevel].clone();
-    windowMaterial.depthWrite = true;
-    windowMaterial.depthTest = true;
-    
+    // Create window material that uses vertex colors
+    const windowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffcc,
+        transparent: true,
+        opacity: 1.0,
+        vertexColors: true,
+        side: THREE.DoubleSide
+    });
+
     const windowsSideA = new THREE.InstancedMesh(
         sharedWindowGeometry,
         windowMaterial,
@@ -135,22 +175,34 @@ export function createBuilding(THREE) {
     const position = new THREE.Vector3();
     const quaternion = new THREE.Quaternion();
     const scale = new THREE.Vector3(windowWidth, windowHeight, 1);
+    let brightness = 0;
 
     // Create windows for front and back (side A)
     let instanceIndex = 0;
     
     // Front face (Z+)
-    let brightness = 0.3 + Math.random() * 0.7;
-    color.setRGB(brightness, brightness, brightness);
     quaternion.setFromEuler(new THREE.Euler(0, 0, 0));
-    
+
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
         
         for (let room = 0; room < roomsPerSideA; room++) {
             const x = -buildingWidthSideA/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const z = buildingWidthSideB/2 + 0.1;  // Increased offset
+            const z = buildingWidthSideB/2 + 0.1;
             
+            // Window brightness based on building policy
+            if (Math.random() > buildingPolicy.conformity) {
+                const level = Math.floor(Math.random() * 4);  // 0-3 levels
+                brightness = 0.3 + (level * 0.3);  // 0.3 to 1.2
+            } else {
+                brightness = 0.3 + (buildingPolicy.baseLevel * 0.3) + (Math.random() * 0.2 - 0.1);
+            }
+            
+            // Some windows are completely dark
+            if (Math.random() < 0.1) brightness = 0;
+            
+            // Set color with cyan tint
+            color.setRGB(0, brightness, brightness);
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideA.setMatrixAt(instanceIndex, matrix);
@@ -160,8 +212,6 @@ export function createBuilding(THREE) {
     }
     
     // Back face (Z-)
-    brightness = 0.3 + Math.random() * 0.7;
-    color.setRGB(brightness, brightness, brightness);
     quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));
     
     for (let floor = 0; floor < numFloors; floor++) {
@@ -169,8 +219,21 @@ export function createBuilding(THREE) {
         
         for (let room = 0; room < roomsPerSideA; room++) {
             const x = -buildingWidthSideA/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const z = -buildingWidthSideB/2 - 0.1;  // Increased offset
+            const z = -buildingWidthSideB/2 - 0.1;
             
+            // Window brightness based on building policy
+            if (Math.random() > buildingPolicy.conformity) {
+                const level = Math.floor(Math.random() * 4);  // 0-3 levels
+                brightness = 0.3 + (level * 0.3);  // 0.3 to 1.2
+            } else {
+                brightness = 0.3 + (buildingPolicy.baseLevel * 0.3) + (Math.random() * 0.2 - 0.1);
+            }
+            
+            // Some windows are completely dark
+            if (Math.random() < 0.1) brightness = 0;
+            
+            // Set color with cyan tint
+            color.setRGB(0, brightness, brightness);
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideA.setMatrixAt(instanceIndex, matrix);
@@ -183,8 +246,6 @@ export function createBuilding(THREE) {
     instanceIndex = 0;
     
     // Right face (X+)
-    brightness = 0.3 + Math.random() * 0.7;
-    color.setRGB(brightness, brightness, brightness);
     quaternion.setFromEuler(new THREE.Euler(0, Math.PI/2, 0));
     
     for (let floor = 0; floor < numFloors; floor++) {
@@ -192,8 +253,21 @@ export function createBuilding(THREE) {
         
         for (let room = 0; room < roomsPerSideB; room++) {
             const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const x = buildingWidthSideA/2 + 0.1;  // Increased offset
+            const x = buildingWidthSideA/2 + 0.1;
             
+            // Window brightness based on building policy
+            if (Math.random() > buildingPolicy.conformity) {
+                const level = Math.floor(Math.random() * 4);  // 0-3 levels
+                brightness = 0.3 + (level * 0.3);  // 0.3 to 1.2
+            } else {
+                brightness = 0.3 + (buildingPolicy.baseLevel * 0.3) + (Math.random() * 0.2 - 0.1);
+            }
+            
+            // Some windows are completely dark
+            if (Math.random() < 0.1) brightness = 0;
+            
+            // Set color with cyan tint
+            color.setRGB(0, brightness, brightness);
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideB.setMatrixAt(instanceIndex, matrix);
@@ -203,8 +277,6 @@ export function createBuilding(THREE) {
     }
     
     // Left face (X-)
-    brightness = 0.3 + Math.random() * 0.7;
-    color.setRGB(brightness, brightness, brightness);
     quaternion.setFromEuler(new THREE.Euler(0, -Math.PI/2, 0));
     
     for (let floor = 0; floor < numFloors; floor++) {
@@ -212,8 +284,21 @@ export function createBuilding(THREE) {
         
         for (let room = 0; room < roomsPerSideB; room++) {
             const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const x = -buildingWidthSideA/2 - 0.1;  // Increased offset
+            const x = -buildingWidthSideA/2 - 0.1;
             
+            // Window brightness based on building policy
+            if (Math.random() > buildingPolicy.conformity) {
+                const level = Math.floor(Math.random() * 4);  // 0-3 levels
+                brightness = 0.3 + (level * 0.3);  // 0.3 to 1.2
+            } else {
+                brightness = 0.3 + (buildingPolicy.baseLevel * 0.3) + (Math.random() * 0.2 - 0.1);
+            }
+            
+            // Some windows are completely dark
+            if (Math.random() < 0.1) brightness = 0;
+            
+            // Set color with cyan tint
+            color.setRGB(0, brightness, brightness);
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
             windowsSideB.setMatrixAt(instanceIndex, matrix);
