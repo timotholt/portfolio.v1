@@ -102,29 +102,31 @@ export function createBuilding(THREE) {
     // Create building group
     const building = new THREE.Group();
 
-    // Building base geometry using only side widths and height
+    // Create building mesh
     const buildingGeometry = new THREE.BoxGeometry(buildingWidthSideA, buildingHeight, buildingWidthSideB);
-    
-    // Cyberpunk-style building material
     const buildingMaterial = new THREE.MeshPhongMaterial({
-        color: 0x001133 + Math.floor(Math.random() * 0x111111),
-        emissive: 0x001133,
-        emissiveIntensity: 0.1
+        color: isModernBuilding ? 0x444444 : 0x666666,
+        shininess: isModernBuilding ? 100 : 10,
+        depthWrite: true,
+        depthTest: true
     });
-
     const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
     building.add(buildingMesh);
 
     // Create instanced meshes for front/back (A) and left/right (B) sides
+    const windowMaterial = materialLevels[buildingPolicy.baseLevel].clone();
+    windowMaterial.depthWrite = true;
+    windowMaterial.depthTest = true;
+    
     const windowsSideA = new THREE.InstancedMesh(
         sharedWindowGeometry,
-        materialLevels[buildingPolicy.baseLevel].clone(),
+        windowMaterial,
         roomsPerSideA * numFloors * 2  // *2 for front and back
     );
 
     const windowsSideB = new THREE.InstancedMesh(
         sharedWindowGeometry,
-        materialLevels[buildingPolicy.baseLevel].clone(),
+        windowMaterial.clone(),
         roomsPerSideB * numFloors * 2  // *2 for left and right
     );
 
@@ -147,7 +149,7 @@ export function createBuilding(THREE) {
         
         for (let room = 0; room < roomsPerSideA; room++) {
             const x = -buildingWidthSideA/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const z = buildingWidthSideB/2;
+            const z = buildingWidthSideB/2 + 0.1;  // Increased offset
             
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
@@ -167,7 +169,7 @@ export function createBuilding(THREE) {
         
         for (let room = 0; room < roomsPerSideA; room++) {
             const x = -buildingWidthSideA/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const z = -buildingWidthSideB/2;
+            const z = -buildingWidthSideB/2 - 0.1;  // Increased offset
             
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
@@ -190,7 +192,7 @@ export function createBuilding(THREE) {
         
         for (let room = 0; room < roomsPerSideB; room++) {
             const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const x = buildingWidthSideA/2;
+            const x = buildingWidthSideA/2 + 0.1;  // Increased offset
             
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
@@ -210,7 +212,7 @@ export function createBuilding(THREE) {
         
         for (let room = 0; room < roomsPerSideB; room++) {
             const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const x = -buildingWidthSideA/2;
+            const x = -buildingWidthSideA/2 - 0.1;  // Increased offset
             
             position.set(x, y, z);
             matrix.compose(position, quaternion, scale);
