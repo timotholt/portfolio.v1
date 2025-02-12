@@ -14,31 +14,31 @@ export function createBuilding(THREE) {
             const insetDepth = isModern ? 0.2 : 0.5;  // Modern windows less inset
             const sillDepth = isModern ? 0 : 0.2;     // Only old buildings have sills
             
-            // Vertices for inset window (counter-clockwise order)
+            // Vertices for inset window (clockwise order for outward-facing normals)
             const vertices = [
                 // Main window (recessed)
                 -0.45, -0.45, -insetDepth,  // bottom left
-                0.45, -0.45, -insetDepth,   // bottom right
+                -0.45, 0.45, -insetDepth,   // top left
                 0.45, 0.45, -insetDepth,    // top right
                 -0.45, -0.45, -insetDepth,  // bottom left
                 0.45, 0.45, -insetDepth,    // top right
-                -0.45, 0.45, -insetDepth,   // top left
+                0.45, -0.45, -insetDepth,   // bottom right
 
                 // Left side
                 -0.5, -0.5, 0,
-                -0.45, -0.45, -insetDepth,
+                -0.5, 0.5, 0,
                 -0.45, 0.45, -insetDepth,
                 -0.5, -0.5, 0,
                 -0.45, 0.45, -insetDepth,
-                -0.5, 0.5, 0,
+                -0.45, -0.45, -insetDepth,
 
                 // Right side
-                0.45, -0.45, -insetDepth,
                 0.5, -0.5, 0,
-                0.5, 0.5, 0,
                 0.45, -0.45, -insetDepth,
-                0.5, 0.5, 0,
                 0.45, 0.45, -insetDepth,
+                0.5, -0.5, 0,
+                0.45, 0.45, -insetDepth,
+                0.5, 0.5, 0,
 
                 // Top
                 -0.5, 0.5, 0,
@@ -48,25 +48,25 @@ export function createBuilding(THREE) {
                 0.45, 0.45, -insetDepth,
                 -0.45, 0.45, -insetDepth,
 
-                // Bottom (with optional sill)
+                // Bottom
+                -0.5, -0.5, 0,
+                -0.45, -0.45, -insetDepth,
+                0.45, -0.45, -insetDepth,
                 -0.5, -0.5, 0,
                 0.45, -0.45, -insetDepth,
-                -0.45, -0.45, -insetDepth,
-                -0.5, -0.5, 0,
-                0.5, -0.5, 0,
-                0.45, -0.45, -insetDepth
+                0.5, -0.5, 0
             ];
 
             // Add sill for old buildings
             if (!isModern) {
                 vertices.push(
                     // Sill (protruding part)
-                    -0.6, -0.5, 0,      // Extended sill
-                    0.6, -0.5, 0,
+                    -0.6, -0.5, 0,
+                    -0.6, -0.5, -0.1,
                     0.6, -0.5, -0.1,
                     -0.6, -0.5, 0,
                     0.6, -0.5, -0.1,
-                    -0.6, -0.5, -0.1
+                    0.6, -0.5, 0
                 );
             }
 
@@ -82,6 +82,12 @@ export function createBuilding(THREE) {
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
             geometry.computeVertexNormals(); // Important for lighting
+
+            // Flip normals to face outward
+            const normals = geometry.getAttribute('normal').array;
+            for (let i = 0; i < normals.length; i++) {
+                normals[i] *= -1;
+            }
 
             return geometry;
         }
@@ -175,7 +181,7 @@ export function createBuilding(THREE) {
     let instanceIndex = 0;
     
     // Front face (Z+)
-    quaternion.setFromEuler(new THREE.Euler(0, 0, 0));
+    quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));  // Rotate 180 to face outward
 
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
@@ -206,14 +212,14 @@ export function createBuilding(THREE) {
     }
     
     // Back face (Z-)
-    quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));  // Rotate 180 degrees for back face
+    quaternion.setFromEuler(new THREE.Euler(0, 0, 0));  // No rotation needed for back face
 
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
         
         for (let room = 0; room < roomsPerSideA; room++) {
             const x = -buildingWidthSideA/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
-            const z = -buildingWidthSideB/2 + 0.1;  // Changed from -0.1 to +0.1
+            const z = -buildingWidthSideB/2 - 0.1;
             
             // Window brightness based on building policy
             if (Math.random() > buildingPolicy.conformity) {
@@ -240,14 +246,14 @@ export function createBuilding(THREE) {
     instanceIndex = 0;
     
     // Right face (X+)
-    quaternion.setFromEuler(new THREE.Euler(0, Math.PI/2, 0));  // 90 degrees for right face
+    quaternion.setFromEuler(new THREE.Euler(0, -Math.PI/2, 0));  // -90 degrees for right face
 
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
         
         for (let room = 0; room < roomsPerSideB; room++) {
             const x = buildingWidthSideA/2 + 0.1;
-            const z = buildingWidthSideB/2 - padding - room * (windowWidth + gutterSize) - windowWidth/2;  // Reverse Z order
+            const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
             
             // Window brightness based on building policy
             if (Math.random() > buildingPolicy.conformity) {
@@ -271,14 +277,14 @@ export function createBuilding(THREE) {
     }
     
     // Left face (X-)
-    quaternion.setFromEuler(new THREE.Euler(0, -Math.PI/2, 0));  // -90 degrees for left face
+    quaternion.setFromEuler(new THREE.Euler(0, Math.PI/2, 0));  // 90 degrees for left face
 
     for (let floor = 0; floor < numFloors; floor++) {
         const y = -buildingHeight/2 + padding + floor * (windowHeight + gutterSize) + windowHeight/2;
         
         for (let room = 0; room < roomsPerSideB; room++) {
             const x = -buildingWidthSideA/2 - 0.1;
-            const z = -buildingWidthSideB/2 + padding + room * (windowWidth + gutterSize) + windowWidth/2;
+            const z = buildingWidthSideB/2 - padding - room * (windowWidth + gutterSize) - windowWidth/2;
             
             // Window brightness based on building policy
             if (Math.random() > buildingPolicy.conformity) {
