@@ -231,7 +231,7 @@ export function createBuilding(THREE) {
         emissiveIntensity: isModernBuilding ? 2 : 0.5
     });
     const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-    roof.position.y = buildingHeight + 1;
+    roof.position.y = buildingHeight/2;
     building.add(roof);
 
     return building;
